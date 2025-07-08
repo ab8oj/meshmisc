@@ -11,34 +11,68 @@ import logging
 
 # Ugh, global variables
 # TODO: Find a better way to track connection status, like perhaps making all this a class
-connected = False
+CONNECTED = False
 
-# === Handlers for events ===
+# === Mesh event handlers ===
+# NOTE: the parameter names must match exactly what the topic expects. For example,
+#       the node parameter name in onNodeUpdated must be 'node'.
+#       Topics and parameters: https://python.meshtastic.org/index.html#published-pubsub-topics
 
 # noinspection DuplicatedCode
 def onConnectionUp(interface, topic=pub.AUTO_TOPIC):
-    global connected
+    global CONNECTED
     print(f"\n--- CONNECTION STATUS: {topic} ---")
-    connected = True
+    CONNECTED = True
     return
 
 # noinspection DuplicatedCode
 def onConnectionDown(interface, topic=pub.AUTO_TOPIC):
-    global connected
+    global CONNECTED
     print(f"\n--- CONNECTION STATUS: {topic} ---")
-    connected = False
+    CONNECTED = False
     return
 
 # noinspection DuplicatedCode
 def onReceive(packet, interface):
-    # TODO: Flesh out
+    # TODO: In the process of being replaced by message type handlers
     print(f"--- RECEIVED PACKET on {interface.getShortName()} ---")
     # Check if the packet contains a text message
     if "decoded" in packet and "text" in packet["decoded"]:
         text_message = packet["decoded"]["text"]
         sender_id = packet["from"]
         print(f"Text Message from Node {sender_id}: {text_message}")
-    # TODO: Add other interesting things here
+    return
+
+def onReceiveText(packet, interface):
+    # Text nessage received (meshtastic.receive.text)
+    if "decoded" in packet and "text" in packet["decoded"]:
+        # ***
+        print(packet["decoded"])
+        text_message = packet["decoded"]["text"]
+        sender_id = packet["from"]
+        print(f"Text Message from Node {sender_id}: {text_message}")
+    else:
+        print("Packet not decoded")
+    return
+
+def onReceivePosition(packet, interface):
+    print("Position packet received")
+    return
+
+def onReceiveUser(packet, interface):
+    print("User packet received")
+    return
+
+def onReceiveDataPortnum(packet, interface):
+    print("Data portnum packet received")
+    return
+
+def onNodeUpdated(node, interface):
+    print("Node updated packet received")
+    return
+
+def onLogLine(line, interface):
+    print("Log line packet received")
     return
 
 # === Functions that do useful things ===
@@ -77,28 +111,29 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 # --- Subscribe to events ---
 # noinspection DuplicatedCode
-pub.subscribe(onReceive, "meshtastic.receive")
+# pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onConnectionUp, "meshtastic.connection.established")
 pub.subscribe(onConnectionDown, "meshtastic.connection.lost")
+pub.subscribe(onReceiveText, "meshtastic.receive.text")
+pub.subscribe(onReceivePosition, "meshtastic.receive.position")
+pub.subscribe(onReceiveUser, "meshtastic.receive.user")
+pub.subscribe(onReceiveDataPortnum, "meshtastic.receive.data.portnum")
+pub.subscribe(onNodeUpdated, "meshtastic.node.updated")
+pub.subscribe(onLogLine, "meshtastic.log.line")
 
-"""
-neverland = ble.make_connection_busyloop(None)
-print("We came back from Neverland")
-"""
 somewhereland = None
 try:
     print("Connecting to Meshtastic BLE interface")
     somewhereland = ble.make_connection_and_return(None)
     print("Waiting for connection to be established")
 
-    while not connected:
+    while not CONNECTED:
         time.sleep(1)
-        print(f"Connected: {connected}")
-        if connected:
+        print(f"Connected: {CONNECTED}")
+        if CONNECTED:
             break  # Caveman style - why is this even needed in the while loop?
     print("Node database:")
-    get_node_db(somewhereland)  # *** this hangs, but just printing .nodes works
-    # print(somewhereland.nodes)  # *** this works
+    get_node_db(somewhereland)
     # TODO: send a directed message to myself. I think that means getting node info first
     # Busy-wait until the node drops, so we can see the async stuff
     print("busy-waiting while async events happen")
