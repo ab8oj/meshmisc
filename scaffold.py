@@ -126,7 +126,7 @@ def send_broadcast_message(interface, message):
 # === Main ===
 
 # Configure logging to see more details from the Meshtastic library
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 # --- Subscribe to events ---
 # noinspection DuplicatedCode
@@ -151,9 +151,11 @@ try:
 except KeyboardInterrupt:
     print("Keyboard interrupt")
 finally:
+    """
     if somewhereland:
         print("Closing connection to Meshtastic BLE interface")
         somewhereland.close()
         print(f"Connection closed")
+    """
     print(TOPIC_COUNTS)
     print("Done")
