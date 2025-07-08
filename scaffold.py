@@ -12,6 +12,7 @@ import logging
 # Ugh, global variables
 # TODO: Find a better way to track connection status, like perhaps making all this a class
 CONNECTED = False
+TOPIC_COUNTS = {}
 
 # === Mesh event handlers ===
 # NOTE: the parameter names must match exactly what the topic expects. For example,
@@ -21,30 +22,20 @@ CONNECTED = False
 # noinspection DuplicatedCode
 def onConnectionUp(interface, topic=pub.AUTO_TOPIC):
     global CONNECTED
-    print(f"\n--- CONNECTION STATUS: {topic} ---")
+    print(f"Connected to {interface.getShortName()} ")
     CONNECTED = True
     return
 
 # noinspection DuplicatedCode
 def onConnectionDown(interface, topic=pub.AUTO_TOPIC):
     global CONNECTED
-    print(f"\n--- CONNECTION STATUS: {topic} ---")
+    print(f"Disconnected from {interface.getShortName()} ")
     CONNECTED = False
-    return
-
-# noinspection DuplicatedCode
-def onReceive(packet, interface):
-    # TODO: In the process of being replaced by message type handlers
-    print(f"--- RECEIVED PACKET on {interface.getShortName()} ---")
-    # Check if the packet contains a text message
-    if "decoded" in packet and "text" in packet["decoded"]:
-        text_message = packet["decoded"]["text"]
-        sender_id = packet["from"]
-        print(f"Text Message from Node {sender_id}: {text_message}")
+    print("\n")
     return
 
 def onReceiveText(packet, interface):
-    # Text nessage received (meshtastic.receive.text)
+    print(f"Text message received on interface {interface.getShortName()}")
     if "decoded" in packet and "text" in packet["decoded"]:
         # ***
         print(packet["decoded"])
@@ -53,26 +44,54 @@ def onReceiveText(packet, interface):
         print(f"Text Message from Node {sender_id}: {text_message}")
     else:
         print("Packet not decoded")
+    print("\n")
     return
 
 def onReceivePosition(packet, interface):
-    print("Position packet received")
+    print(f"Position packet received on interface {interface.getShortName()}")
+    if "decoded" in packet:
+        print(packet["decoded"])
+    else:
+        print("Packet not decoded")
+    print("\n")
+    return
+
+def onReceiveTelemetry(packet, interface):
+    print(f"Telemetry packet received on interface {interface.getShortName()}")
+    if "decoded" in packet:
+        print(packet["decoded"])
+    else:
+        print("Packet not decoded")
+    print("\n")
     return
 
 def onReceiveUser(packet, interface):
-    print("User packet received")
+    print(f"User packet received on interface {interface.getShortName()}")
+    if "decoded" in packet:
+        print(packet["decoded"])
+    else:
+        print("Packet not decoded")
+    print("\n")
     return
 
-def onReceiveDataPortnum(packet, interface):
-    print("Data portnum packet received")
+def onReceiveData(packet, interface, topic=pub.AUTO_TOPIC):
+    print(f"Data packet, topic: {topic}")
+    if topic in TOPIC_COUNTS:
+        TOPIC_COUNTS[topic] += 1
+    else:
+        TOPIC_COUNTS[topic] = 1
     return
 
 def onNodeUpdated(node, interface):
-    print("Node updated packet received")
+    print(f"Node updated packet received on interface {interface.getShortName()}")
+    print(node)
+    print("\n")
     return
 
 def onLogLine(line, interface):
-    print("Log line packet received")
+    print(f"Log line packet received on interface {interface.getShortName()}")
+    print(line)
+    print("\n")
     return
 
 # === Functions that do useful things ===
@@ -107,39 +126,34 @@ def send_broadcast_message(interface, message):
 # === Main ===
 
 # Configure logging to see more details from the Meshtastic library
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s')
 
 # --- Subscribe to events ---
 # noinspection DuplicatedCode
 # pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onConnectionUp, "meshtastic.connection.established")
 pub.subscribe(onConnectionDown, "meshtastic.connection.lost")
-pub.subscribe(onReceiveText, "meshtastic.receive.text")
-pub.subscribe(onReceivePosition, "meshtastic.receive.position")
-pub.subscribe(onReceiveUser, "meshtastic.receive.user")
-pub.subscribe(onReceiveDataPortnum, "meshtastic.receive.data.portnum")
-pub.subscribe(onNodeUpdated, "meshtastic.node.updated")
+# pub.subscribe(onReceiveText, "meshtastic.receive.text")  # Getting text fine
+# pub.subscribe(onReceivePosition, "meshtastic.receive.position")  # Getting position fine
+# pub.subscribe(onReceiveUser, "meshtastic.receive.user")  # Getting user fine
+# pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")  # Getting telemetry fine
+pub.subscribe(onReceiveData, "meshtastic.receive")  # Catch-all to report all received packets
+# pub.subscribe(onNodeUpdated, "meshtastic.node.updated")
 pub.subscribe(onLogLine, "meshtastic.log.line")
 
 somewhereland = None
 try:
     print("Connecting to Meshtastic BLE interface")
     somewhereland = ble.make_connection_and_return(None)
-    print("Waiting for connection to be established")
-
-    while not CONNECTED:
-        time.sleep(1)
-        print(f"Connected: {CONNECTED}")
-        if CONNECTED:
-            break  # Caveman style - why is this even needed in the while loop?
-    print("Node database:")
-    get_node_db(somewhereland)
-    # TODO: send a directed message to myself. I think that means getting node info first
-    # Busy-wait until the node drops, so we can see the async stuff
     print("busy-waiting while async events happen")
     while True:
         time.sleep(1)
+except KeyboardInterrupt:
+    print("Keyboard interrupt")
 finally:
     if somewhereland:
+        print("Closing connection to Meshtastic BLE interface")
         somewhereland.close()
-        print(f"Connection closed for interface {somewhereland.getShortName()}")
+        print(f"Connection closed")
+    print(TOPIC_COUNTS)
+    print("Done")
