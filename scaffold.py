@@ -65,6 +65,15 @@ def onReceiveTelemetry(packet, interface):
     print("\n")
     return
 
+def onReceiveNeighborinfo(packet, interface):
+    print(f"Neighborinfo packet received on interface {interface.getShortName()}")
+    if "decoded" in packet:
+        print(packet["decoded"])
+    else:
+        print("Packet not decoded")
+    print("\n")
+    return
+
 def onReceiveUser(packet, interface):
     print(f"User packet received on interface {interface.getShortName()}")
     if "decoded" in packet:
@@ -76,10 +85,13 @@ def onReceiveUser(packet, interface):
 
 def onReceiveData(packet, interface, topic=pub.AUTO_TOPIC):
     print(f"Data packet, topic: {topic}")
-    if topic in TOPIC_COUNTS:
-        TOPIC_COUNTS[topic] += 1
+    topic_str = str(topic)
+    if topic_str in TOPIC_COUNTS:
+        TOPIC_COUNTS[topic_str] += 1
     else:
-        TOPIC_COUNTS[topic] = 1
+        TOPIC_COUNTS[topic_str] = 1
+    if topic_str.startswith("meshtastic.receive("):  # Generic receive topic
+        print(packet)
     return
 
 def onNodeUpdated(node, interface):
@@ -133,10 +145,11 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 # pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onConnectionUp, "meshtastic.connection.established")
 pub.subscribe(onConnectionDown, "meshtastic.connection.lost")
-# pub.subscribe(onReceiveText, "meshtastic.receive.text")  # Getting text fine
-# pub.subscribe(onReceivePosition, "meshtastic.receive.position")  # Getting position fine
-# pub.subscribe(onReceiveUser, "meshtastic.receive.user")  # Getting user fine
-# pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")  # Getting telemetry fine
+# pub.subscribe(onReceiveText, "meshtastic.receive.text")
+# pub.subscribe(onReceivePosition, "meshtastic.receive.position")
+# pub.subscribe(onReceiveUser, "meshtastic.receive.user")
+# pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
+# pub.subscribe(onReceiveNeighborinfo, "meshtastic.receive.neighborinfo") # *** test this
 pub.subscribe(onReceiveData, "meshtastic.receive")  # Catch-all to report all received packets
 # pub.subscribe(onNodeUpdated, "meshtastic.node.updated")
 pub.subscribe(onLogLine, "meshtastic.log.line")
@@ -157,5 +170,7 @@ finally:
         somewhereland.close()
         print(f"Connection closed")
     """
-    print(TOPIC_COUNTS)
+
+    for topic, count in TOPIC_COUNTS.items():
+        print(f"{topic}: {count}")
     print("Done")
