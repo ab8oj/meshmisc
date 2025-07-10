@@ -31,73 +31,86 @@ def onConnectionDown(interface, topic=pub.AUTO_TOPIC):
     global CONNECTED
     print(f"Disconnected from {interface.getShortName()} ")
     CONNECTED = False
-    print("\n")
+    # print("\n")
     return
 
 def onReceiveText(packet, interface):
-    print(f"Text message received on interface {interface.getShortName()}")
-    if "decoded" in packet and "text" in packet["decoded"]:
-        # ***
-        print(packet["decoded"])
-        text_message = packet["decoded"]["text"]
-        sender_id = packet["from"]
-        print(f"Text Message from Node {sender_id}: {text_message}")
+    our_shortname = interface.getShortName()
+    text_message = packet.get("decoded").get("text")
+    if "fromId" in packet:
+        from_shortname = interface.nodes[packet["fromId"]].get("user").get("shortName")
+        from_longname = interface.nodes[packet["fromId"]].get("user").get("longName")
     else:
-        print("Packet not decoded")
-    print("\n")
+        from_shortname = "unknown"
+        from_longname = "unknown"
+    msg_line = f"Text Message on {our_shortname} from node {from_longname} ({from_shortname}): {text_message}"
+    print(msg_line)
+    with open("message.log", "a") as log:  # TODO: make a better permanent storage solution
+        print(msg_line, file=log)
     return
 
 def onReceivePosition(packet, interface):
     print(f"Position packet received on interface {interface.getShortName()}")
+    """
     if "decoded" in packet:
         print(packet["decoded"])
     else:
         print("Packet not decoded")
-    print("\n")
+    """
+    # print("\n")
     return
 
 def onReceiveTelemetry(packet, interface):
     print(f"Telemetry packet received on interface {interface.getShortName()}")
+    """
     if "decoded" in packet:
         print(packet["decoded"])
     else:
         print("Packet not decoded")
-    print("\n")
+    """
+    # print("\n")
     return
 
 def onReceiveNeighborinfo(packet, interface):
     print(f"Neighborinfo packet received on interface {interface.getShortName()}")
+    """
     if "decoded" in packet:
         print(packet["decoded"])
     else:
         print("Packet not decoded")
-    print("\n")
+    """
+    # print("\n")
     return
 
 def onReceiveUser(packet, interface):
     print(f"User packet received on interface {interface.getShortName()}")
+    """
     if "decoded" in packet:
         print(packet["decoded"])
     else:
         print("Packet not decoded")
-    print("\n")
+    """
+    # print("\n")
     return
 
 def onReceiveData(packet, interface, topic=pub.AUTO_TOPIC):
-    print(f"Data packet, topic: {topic}")
+    # print(f"Data packet, topic: {topic}")
     topic_str = str(topic)
     if topic_str in TOPIC_COUNTS:
         TOPIC_COUNTS[topic_str] += 1
     else:
         TOPIC_COUNTS[topic_str] = 1
+    """
     if topic_str.startswith("meshtastic.receive("):  # Generic receive topic
         print(packet)
+    """
     return
 
 def onNodeUpdated(node, interface):
-    print(f"Node updated packet received on interface {interface.getShortName()}")
-    print(node)
-    print("\n")
+    # print(f"Node updated packet received on interface {interface.getShortName()}")
+    # TODO: Create an in-memory node database from the relevant parts of the node data
+    # print(node)
+    # print("\n")
     return
 
 def onLogLine(line, interface):
@@ -142,16 +155,15 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 # --- Subscribe to events ---
 # noinspection DuplicatedCode
-# pub.subscribe(onReceive, "meshtastic.receive")
 pub.subscribe(onConnectionUp, "meshtastic.connection.established")
 pub.subscribe(onConnectionDown, "meshtastic.connection.lost")
-# pub.subscribe(onReceiveText, "meshtastic.receive.text")
-# pub.subscribe(onReceivePosition, "meshtastic.receive.position")
-# pub.subscribe(onReceiveUser, "meshtastic.receive.user")
-# pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
-# pub.subscribe(onReceiveNeighborinfo, "meshtastic.receive.neighborinfo") # *** test this
-pub.subscribe(onReceiveData, "meshtastic.receive")  # Catch-all to report all received packets
-# pub.subscribe(onNodeUpdated, "meshtastic.node.updated")
+pub.subscribe(onReceiveText, "meshtastic.receive.text")
+pub.subscribe(onReceivePosition, "meshtastic.receive.position")
+pub.subscribe(onReceiveUser, "meshtastic.receive.user")
+pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
+pub.subscribe(onReceiveNeighborinfo, "meshtastic.receive.neighborinfo") # *** test this
+pub.subscribe(onReceiveData, "meshtastic.receive")  # Catch-all to report and count all received packets
+pub.subscribe(onNodeUpdated, "meshtastic.node.updated")
 pub.subscribe(onLogLine, "meshtastic.log.line")
 
 somewhereland = None
@@ -170,7 +182,6 @@ finally:
         somewhereland.close()
         print(f"Connection closed")
     """
-
     for topic, count in TOPIC_COUNTS.items():
         print(f"{topic}: {count}")
     print("Done")
