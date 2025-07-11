@@ -19,14 +19,12 @@ TOPIC_COUNTS = {}
 #       the node parameter name in onNodeUpdated must be 'node'.
 #       Topics and parameters: https://python.meshtastic.org/index.html#published-pubsub-topics
 
-# noinspection DuplicatedCode
 def onConnectionUp(interface, topic=pub.AUTO_TOPIC):
     global CONNECTED
     print(f"Connected to {interface.getShortName()} ")
     CONNECTED = True
     return
 
-# noinspection DuplicatedCode
 def onConnectionDown(interface, topic=pub.AUTO_TOPIC):
     global CONNECTED
     print(f"Disconnected from {interface.getShortName()} ")
@@ -121,7 +119,6 @@ def onLogLine(line, interface):
 
 # === Functions that do useful things ===
 
-# noinspection DuplicatedCode
 def get_node_db(interface):
     print(f"\n--- NODE DATABASE for {interface.getShortName()} ---")
     # Each node is a dict, key is node name and value is a dict of things about that node
@@ -154,7 +151,6 @@ def send_broadcast_message(interface, message):
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 # --- Subscribe to events ---
-# noinspection DuplicatedCode
 pub.subscribe(onConnectionUp, "meshtastic.connection.established")
 pub.subscribe(onConnectionDown, "meshtastic.connection.lost")
 pub.subscribe(onReceiveText, "meshtastic.receive.text")

@@ -9,6 +9,15 @@ find all mesh devices on all interfaces that can be discovered or configured
 handle the selection of which interface type (might run counter to GUI wanting control of that, though)
 in general, move interface management here, leaving the apps to do simple things like send text
     and display node info.
+    class interfaceManager
+        interface - maybe a dict if we support multiple interfaces - all the active interfaces
+            then a caller can do something like: im=interfaceManager(), im.interface["OJB1"].sendText("foo")
+        interface_types - list of supported interface types e.g. ["ble", "rest", "serial"]
+        methods for:
+            getting all available interfaces (optionally a specific type)
+            connect to a specific interface (pass in what, the address or short name or ?)
+            connect to the first available device on a given interface type (might only work for ble?)
+            connect to the first available device on all interface types, given a specific order of types
 """
 
 """
