@@ -35,7 +35,7 @@ def onConnectionDown(interface, topic=pub.AUTO_TOPIC):
 def onReceiveText(packet, interface):
     our_shortname = interface.getShortName()
     text_message = packet.get("decoded").get("text")
-    if "fromId" in packet:
+    if "fromId" in packet and packet["fromId"] is not None:
         from_shortname = interface.nodes[packet["fromId"]].get("user").get("shortName")
         from_longname = interface.nodes[packet["fromId"]].get("user").get("longName")
     else:
