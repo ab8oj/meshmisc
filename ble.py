@@ -42,3 +42,11 @@ def make_connection_and_return(address: Optional[str]):
         print(f"\nAn unexpected error occurred: {e}")
 
     return interface
+
+def scan_all_devices() -> list:
+    # Return a list of tuples: ("ble", device address , device name) or empty list
+    ble_devices = meshtastic.ble_interface.BLEInterface.scan()
+    dev_list = []
+    for dev in ble_devices:
+        dev_list.append(("ble", dev.address, dev.name))
+    return dev_list
