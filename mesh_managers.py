@@ -1,10 +1,12 @@
 # TODO: Add sane logging
+import meshtastic.mesh_interface
 
 import ble
 import logging
 from pubsub import pub
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)  # Set our own logging level separately from the root
 
 class InterfaceError(Exception):
     pass
@@ -14,8 +16,6 @@ class Unimplemented(Exception):
 
 class DeviceManager:
     supported_interface_types = ["ble", "tcp", "serial"]
-    # TODO: what object type is an interface?  Do we need to track here, or just let app track?
-    interfaces = []  # TODO: Add on first connect, keep around after disconnect, remove only via method
 
     def __init__(self):
         log.debug("Initializing mesh manager")
@@ -78,9 +78,25 @@ class DeviceManager:
         else:
             raise InterfaceError("Unknown interface type")  # Should not reach this (belt and suspenders)
 
-    def connect_to_specific_device(self, address):  # TODO: verify input(s)
-        # TODO: Don;'t forget to add the interface if it doesn't exist yet
-        pass
+    def connect_to_specific_device(self, interface_type, address) -> meshtastic.mesh_interface.MeshInterface:
+        # Connect to one device of the given type and address
+        # Returns the MeshInterface object representing the connected device
+        if not any(typ in interface_type for typ in self.supported_interface_types):
+            raise InterfaceError(f"interface_type must be one of {str(self.supported_interface_types)}")
+
+        if interface_type == "ble":
+            log.info(f"Connecting to ble device {address}")
+            interface = ble.make_connection_and_return(address)  # Let exceptions fly past us to the caller
+        elif interface_type == "tcp":
+            log.debug("Finding tcp devices")
+            raise Unimplemented("TCP interface type is not currently supported")
+        elif interface_type == "serial":
+            log.debug("Finding serial devices")
+            raise Unimplemented("Serial interface type is not currently supported")
+        else:
+            raise InterfaceError("Unknown interface type")  # Should not reach this (belt and suspenders)
+
+        return interface
 
     def disconnect_from_specific_device(self, address):
         pass
