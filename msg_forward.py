@@ -1,8 +1,11 @@
 # Forward select messages to another channel or SMS (via email)
 
-from mesh_managers import DeviceManager,  InterfaceError, Unimplemented
-from pubsub import pub
 import logging
+from pubsub import pub
+
+import survey
+
+from mesh_managers import DeviceManager, InterfaceError, Unimplemented
 
 # TODO: move these to a configuration file
 log_name = "msg_forward.log"
@@ -11,25 +14,64 @@ log_name = "msg_forward.log"
 
 # Incoming message
 def onIncomingMessage(packet, interface):
-    pass
+    our_shortname = interface.getShortName()
+    text_message = packet.get("decoded").get("text")
+    if "fromId" in packet and packet["fromId"] is not None:
+        from_shortname = interface.nodes[packet["fromId"]].get("user").get("shortName")
+        from_longname = interface.nodes[packet["fromId"]].get("user").get("longName")
+    else:
+        from_shortname = "unknown"
+        from_longname = "unknown"
+    msg_line = f"Text Message on {our_shortname} from node {from_longname} ({from_shortname}): {text_message}"
+    print(msg_line)
 
+def onConnectionUp(interface):
+    print(f"Connection established on interface {interface.getShortName()}")
+    return
+
+def onConnectionDown(interface):
+    print(f"Connection lost on interface {interface.getShortName()}")
+    return
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: [%(name)s] %(module)s.%(funcName)s %(message)s',
-                        filename=log_name, filemode='a')
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: [%(name)s] %(module)s.%(funcName)s %(message)s',
+                        filename=log_name, filemode='a')  # Configure root logger
     log = logging.getLogger(__name__)
+    log.setLevel(logging.DEBUG)  # Set our own level separately
     logging.getLogger("bleak").setLevel(logging.INFO)  # Turn off BLE debug info
+    # Sadly, meshtastic logging runs from the root logger, so there's likely no way to set that separately
 
-    log.debug("Subscribing to incoming messages")
-    pub.subscribe(onIncomingMessage, "meshtastic.receive.text")
-
-    log.debug("Instantiating MeshManager")
     device_manager = DeviceManager()
+
+    # Find all available devices and list them
     log.debug("Finding all devices")
     devices = device_manager.find_all_available_devices()
+    shortnames = [name for (typ, address, name) in devices]
+    index = survey.routines.select('Choose a device: ', options=shortnames, focus_mark = '> ')
 
-    # ***
-    print(devices)
+    # Subscribe to relevant pubsub topics
+    pub.subscribe(onConnectionUp, "meshtastic.connection.established")
+    pub.subscribe(onConnectionDown, "meshtastic.connection.lost")
+    pub.subscribe(onIncomingMessage, "meshtastic.receive.text")
+
+    # Connect to the selected device
+    (interface_type, address, name) = devices[index]
+    interface = None
+    try:
+        interface = device_manager.connect_to_specific_device(interface_type, address)
+        response = ""
+        while response != "quit":
+            response = survey.routines.input("Enter 'quit' to exit or anything else to be ignored\n")
+    except Unimplemented:
+        print(f"Unimplemented interface type: {interface_type}")
+    except InterfaceError as e:
+        print(f"Interface error: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+    finally:
+        if interface:
+            print(f"Disconnecting from {interface.getShortName()}")
+            interface.close()  # *** close() hangs on disconnect at the present time
 
 if __name__ == "__main__":
     main()
