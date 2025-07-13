@@ -14,19 +14,22 @@ def onIncomingMessage(packet, interface):
     pass
 
 
-# === Main ===
+def main():
+    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: [%(name)s] %(module)s.%(funcName)s %(message)s',
+                        filename=log_name, filemode='a')
+    log = logging.getLogger(__name__)
+    logging.getLogger("bleak").setLevel(logging.INFO)  # Turn off BLE debug info
 
-# Setup
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s', filename=log_name, filemode='a')
-logger = logging.getLogger(__name__)
+    log.debug("Subscribing to incoming messages")
+    pub.subscribe(onIncomingMessage, "meshtastic.receive.text")
 
-logger.debug("Subscribing to incoming messages")
-pub.subscribe(onIncomingMessage, "meshtastic.receive.text")
+    log.debug("Instantiating MeshManager")
+    mesh_manager = MeshManager()
+    logging.debug("Finding all devices")
+    devices = mesh_manager.find_all_available_devices()
 
-logger.debug("Instantiating MeshManager")
-mesh_manager = MeshManager()
-logging.debug("Finding all devices")
-devices = mesh_manager.find_all_available_devices()
+    # ***
+    print(devices)
 
-# ***
-print(devices)
+if __name__ == "__main__":
+    main()
