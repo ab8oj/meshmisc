@@ -12,12 +12,10 @@ class InterfaceError(Exception):
 class Unimplemented(Exception):
     pass
 
-class MeshManager:
-    # TODO: Do I even need a connected variable here? See if there is one in the interface object
-    connected = False  # TODO: Hey, this forces a single device at a time. Fix that!
+class DeviceManager:
     supported_interface_types = ["ble", "tcp", "serial"]
-    # An "interface" is (connected, meshtastic.interface object)
-    interfaces = []  # TODO: Add interface on first connect, making a distinction between "active" and "connected"
+    # TODO: what object type is an interface?  Do we need to track here, or just let app track?
+    interfaces = []  # TODO: Add on first connect, keep around after disconnect, remove only via method
 
     def __init__(self):
         log.debug("Initializing mesh manager")
@@ -25,14 +23,13 @@ class MeshManager:
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
 
+    # TODO: do we need these here? Do we need to reflect state change to app?
     def onConnectionUp(self, interface, topic=pub.AUTO_TOPIC):
         log.info(f"Connection established on interface {interface.getShortName()}")
-        self.connected = True  # TODO: fix for multiple interfaces
         return
 
     def onConnectionDown(self, interface, topic=pub.AUTO_TOPIC):
         log.info(f"Connection lost on interface {interface.getShortName()}")
-        self.connected = False  # TODO: fix for multiple interfaces
         return
 
     def find_all_available_devices(self, interface_types=None) -> list:

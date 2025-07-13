@@ -1,6 +1,6 @@
 # Forward select messages to another channel or SMS (via email)
 
-from mesh_managers import MeshManager,  InterfaceError, Unimplemented
+from mesh_managers import DeviceManager,  InterfaceError, Unimplemented
 from pubsub import pub
 import logging
 
@@ -24,9 +24,9 @@ def main():
     pub.subscribe(onIncomingMessage, "meshtastic.receive.text")
 
     log.debug("Instantiating MeshManager")
-    mesh_manager = MeshManager()
-    logging.debug("Finding all devices")
-    devices = mesh_manager.find_all_available_devices()
+    device_manager = DeviceManager()
+    log.debug("Finding all devices")
+    devices = device_manager.find_all_available_devices()
 
     # ***
     print(devices)
