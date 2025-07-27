@@ -17,13 +17,14 @@ def onIncomingMessage(packet, interface):
     # TODO: Move packet parsing to a separate function, this is getting a bit long
     log = logging.getLogger(__name__)
     log.debug("Received incoming message")
+    log.debug(packet)
 
     my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")
     our_shortname = interface.getShortName()
 
     text_message = packet.get("decoded", {}).get("text", "Unknown text")
 
-    if "raw" in packet:  # Assumes channel will always be in the raw packet, if present. Harden later?
+    if "raw" in packet and hasattr(packet["raw"], "channel"):
         channel = packet["raw"].channel
     else:
         channel = "Unknown"
