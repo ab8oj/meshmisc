@@ -14,15 +14,21 @@ log_name = "msg_forward.log"
 
 # Incoming message
 def onIncomingMessage(packet, interface):
+    # TODO: Move packet parsing to a separate function
     our_shortname = interface.getShortName()
-    text_message = packet.get("decoded").get("text")
+    text_message = packet.get("decoded", {}).get("text", "No text")
+    if "raw" in packet:  # Assumes channel will always be in the raw packet, if present. Harden later?
+        channel = packet["raw"].channel
+    else:
+        channel = "Unknown"
     if "fromId" in packet and packet["fromId"] is not None:
-        from_shortname = interface.nodes[packet["fromId"]].get("user").get("shortName")
-        from_longname = interface.nodes[packet["fromId"]].get("user").get("longName")
+        from_shortname = interface.nodes[packet["fromId"]].get("user", {}).get("shortName", None)
+        from_longname = interface.nodes[packet["fromId"]].get("user", {}).get("longName", None)
     else:
         from_shortname = "unknown"
         from_longname = "unknown"
-    msg_line = f"Text Message on {our_shortname} from node {from_longname} ({from_shortname}): {text_message}"
+    msg_line = (f"Text Message to {our_shortname} on channel {channel} "
+                f"from node {from_longname} ({from_shortname}): {text_message}")
     print(msg_line)
 
 def onConnectionUp(interface):
