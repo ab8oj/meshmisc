@@ -14,21 +14,34 @@ log_name = "msg_forward.log"
 
 # Incoming message
 def onIncomingMessage(packet, interface):
-    # TODO: Move packet parsing to a separate function
+    # TODO: Move packet parsing to a separate function, this is getting a bit long
+    my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")
     our_shortname = interface.getShortName()
-    text_message = packet.get("decoded", {}).get("text", "No text")
+
+    text_message = packet.get("decoded", {}).get("text", "Unknown text")
+
     if "raw" in packet:  # Assumes channel will always be in the raw packet, if present. Harden later?
         channel = packet["raw"].channel
     else:
         channel = "Unknown"
+
     if "fromId" in packet and packet["fromId"] is not None:
-        from_shortname = interface.nodes[packet["fromId"]].get("user", {}).get("shortName", None)
-        from_longname = interface.nodes[packet["fromId"]].get("user", {}).get("longName", None)
+        from_shortname = interface.nodes[packet["fromId"]].get("user", {}).get("shortName", "Unknown")
+        from_longname = interface.nodes[packet["fromId"]].get("user", {}).get("longName", "Unknown")
     else:
         from_shortname = "unknown"
         from_longname = "unknown"
-    msg_line = (f"Text Message to {our_shortname} on channel {channel} "
-                f"from node {from_longname} ({from_shortname}): {text_message}")
+
+    to_id = packet.get("toId", "Unknown ToId")
+    if to_id == my_node_id:
+        message_type = "Direct"
+    elif to_id == "^all":
+        message_type = "Broadcast"
+    else:
+        message_type = "Passthru"  # I don't think this should happen, since the mesh bits should just forward it
+
+    msg_line = (f"Text Message on interface {our_shortname} channel {channel}:\n"
+                f"From node {from_longname} ({from_shortname}) type {message_type}: {text_message}")
     print(msg_line)
 
 def onConnectionUp(interface):
