@@ -15,6 +15,9 @@ log_name = "msg_forward.log"
 # Incoming message
 def onIncomingMessage(packet, interface):
     # TODO: Move packet parsing to a separate function, this is getting a bit long
+    log = logging.getLogger(__name__)
+    log.debug("Received incoming message")
+
     my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")
     our_shortname = interface.getShortName()
 
@@ -40,8 +43,9 @@ def onIncomingMessage(packet, interface):
     else:
         message_type = "Passthru"  # I don't think this should happen, since the mesh bits should just forward it
 
-    msg_line = (f"Text Message on interface {our_shortname} channel {channel}:\n"
+    msg_line = (f"Text Message on interface {our_shortname} channel {channel}: "
                 f"From node {from_longname} ({from_shortname}) type {message_type}: {text_message}")
+    log.info(msg_line)
     print(msg_line)
 
 def onConnectionUp(interface):
