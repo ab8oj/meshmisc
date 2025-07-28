@@ -1,22 +1,33 @@
 # Forward select messages to another channel or SMS (via email)
 
 import logging
+import os
+import sys
 from pubsub import pub
+from enum import Enum, unique
 
 import survey
+from dotenv import load_dotenv
 
 from mesh_managers import DeviceManager, InterfaceError, Unimplemented
+from email_interface import send_email
 
-# TODO: move these to a configuration file
-log_name = "msg_forward.log"
+# Since we don't get constants or #DEFINEs in Python, we make due with enumerations
+@unique
+class MessageType(Enum):  # Define constants for message type, since they will be used in several places
+    DIRECT_MESSAGE = "Direct"
+    BROADCAST_MESSAGE = "Broadcast"
+    PASSTHRU_MESSAGE = "Passthru"
 
 # === Event handlers ===
 
 # Incoming message
 def onIncomingMessage(packet, interface):
     # TODO: Move packet parsing to a separate function, this is getting a bit long
+    msg_log_name = os.getenv("MSG_LOG_NAME")  # Where the messages themselves get logged (flat file)
+
     log = logging.getLogger(__name__)
-    log.debug("Received incoming message")
+    log.info("Received incoming message")
     log.debug(packet)
 
     my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")
@@ -38,16 +49,39 @@ def onIncomingMessage(packet, interface):
 
     to_id = packet.get("toId", "Unknown ToId")
     if to_id == my_node_id:
-        message_type = "Direct"
+        message_type = MessageType.DIRECT_MESSAGE
     elif to_id == "^all":
-        message_type = "Broadcast"
+        message_type = MessageType.BROADCAST_MESSAGE
     else:
-        message_type = "Passthru"  # I don't think this should happen, since the mesh bits should just forward it
+        message_type = MessageType.PASSTHRU_MESSAGE  # Belt and suspenders, we shouldn't see one of these
 
-    msg_line = (f"Text Message on interface {our_shortname} channel {channel}: "
-                f"From node {from_longname} ({from_shortname}) type {message_type}: {text_message}")
-    log.info(msg_line)
+    msg_line = (f"Text Message on interface {our_shortname} channel {channel}:\n"
+                f"   From node {from_longname} ({from_shortname}) type {message_type.value}:\n"
+                f"   {text_message}")
+    log.debug(msg_line)
     print(msg_line)
+    with open(msg_log_name, "a") as f:
+        f.write(msg_line)
+
+    if message_type == MessageType.DIRECT_MESSAGE:
+        print("forwarding to email")
+        log.info("forwarding to email")
+        try:
+            smtp_server = os.getenv("SMTP_SERVER")
+            smtp_sender = os.getenv("SMTP_SENDER")
+            smtp_password = os.getenv("SMTP_PASSWORD")
+            email_from_address = os.getenv("EMAIL_FROM_ADDRESS")
+            email_to_address = os.getenv("EMAIL_TO_ADDRESS")
+            send_email(smtp_server, smtp_sender, smtp_password,
+                       email_from_address, email_to_address,
+                       f"Mesh: direct message from {from_longname}", msg_line)
+            del smtp_password
+        except Exception as e:
+            log.error(e)
+            print(f"Forward to email failed; exception {e}")
+        else:
+            print("Message forwarded")
+            log.info("Message forwarded")
 
 def onConnectionUp(interface):
     print(f"Connection established on interface {interface.getShortName()}")
@@ -58,8 +92,11 @@ def onConnectionDown(interface):
     return
 
 def main():
+    load_dotenv()
+    app_log_name = os.getenv("APP_LOG_NAME")  # Application log messages (logger)
+
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: [%(name)s] %(module)s.%(funcName)s %(message)s',
-                        filename=log_name, filemode='a')  # Configure root logger
+                        filename=app_log_name, filemode='a')  # Configure root logger
     log = logging.getLogger(__name__)
     log.setLevel(logging.DEBUG)  # Set our own level separately
     logging.getLogger("bleak").setLevel(logging.INFO)  # Turn off BLE debug info
@@ -71,7 +108,11 @@ def main():
     log.debug("Finding all devices")
     devices = device_manager.find_all_available_devices()
     shortnames = [name for (typ, address, name) in devices]
-    index = survey.routines.select('Choose a device: ', options=shortnames, focus_mark = '> ')
+    if shortnames:
+        index = survey.routines.select('Choose a device: ', options=shortnames, focus_mark = '> ')
+    else:
+        print("No devices found, exiting")
+        sys.exit(1)
 
     # Subscribe to relevant pubsub topics
     pub.subscribe(onConnectionUp, "meshtastic.connection.established")
