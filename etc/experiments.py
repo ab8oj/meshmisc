@@ -1,4 +1,4 @@
-# Console-type scaffolding of the logic layer
+# Experimenting and playing around
 import time
 
 # TODO: Support multiple mesh devices
