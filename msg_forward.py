@@ -1,4 +1,4 @@
-# Forward select messages to another channel or SMS (via email)
+# Forward direct messages to email, and log all messages
 
 import logging
 import os
@@ -15,9 +15,9 @@ from email_interface import send_email
 # Since we don't get constants or #DEFINEs in Python, we make due with enumerations
 @unique
 class MessageType(Enum):  # Define constants for message type, since they will be used in several places
-    DIRECT_MESSAGE = "Direct"
-    BROADCAST_MESSAGE = "Broadcast"
-    PASSTHRU_MESSAGE = "Passthru"
+    DIRECT_MESSAGE = "Direct"  # A message sent directly to a node
+    BROADCAST_MESSAGE = "Broadcast"  # A message sent to "^all" on a channel
+    PASSTHRU_MESSAGE = "Passthru"  # A message destined for another specific node; we should never see this
 
 # === Event handlers ===
 
@@ -67,6 +67,7 @@ def onIncomingMessage(packet, interface):
         print("forwarding to email")
         log.info("forwarding to email")
         try:
+            # TODO: Probably better to get these values in email_interface
             smtp_server = os.getenv("SMTP_SERVER")
             smtp_sender = os.getenv("SMTP_SENDER")
             smtp_password = os.getenv("SMTP_PASSWORD")

@@ -1,4 +1,3 @@
-# TODO: Add sane logging
 import meshtastic.mesh_interface
 
 import ble
@@ -15,6 +14,7 @@ class Unimplemented(Exception):
     pass
 
 class DeviceManager:
+    # Manage a set of Meshtastic devices across several interface types.
     supported_interface_types = ["ble", "tcp", "serial"]
 
     def __init__(self):
@@ -23,7 +23,7 @@ class DeviceManager:
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
 
-    # TODO: do we need these here? Do we need to reflect state change to app?
+    # TODO: do we need these here? Do we need to reflect state change to app layer?
     def onConnectionUp(self, interface, topic=pub.AUTO_TOPIC):
         log.info(f"Connection established on interface {interface.getShortName()}")
         return
@@ -81,6 +81,7 @@ class DeviceManager:
     def connect_to_specific_device(self, interface_type, address) -> meshtastic.mesh_interface.MeshInterface:
         # Connect to one device of the given type and address
         # Returns the MeshInterface object representing the connected device
+
         if not any(typ in interface_type for typ in self.supported_interface_types):
             raise InterfaceError(f"interface_type must be one of {str(self.supported_interface_types)}")
 

@@ -1,4 +1,5 @@
-# Email interface
+# Send email using an external SMTP server
+# TODO: Move SMTP .env data here and simplify send_email parameters
 
 import smtplib
 from email.message import EmailMessage

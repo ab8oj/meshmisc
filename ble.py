@@ -5,8 +5,8 @@ from typing import Optional
 import meshtastic.ble_interface
 
 # TODO: it would be nice to make this class-based somehow.
-# TODO: move print statements to something better like, oh I dunno, logging?
-# TODO: see if multiple BLE devices can be supported
+# TODO: change print statements to logger
+# TODO: see if multiple BLE devices can even be supported
 
 def make_connection_busyloop(address: Optional[str]):
     # Mostly just an example of the entire process: connect, keep the script executing, close when done
