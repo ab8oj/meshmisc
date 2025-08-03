@@ -1,4 +1,5 @@
 import meshtastic.mesh_interface
+import serial_port
 
 import ble
 import logging
@@ -74,7 +75,7 @@ class DeviceManager:
             raise Unimplemented("TCP interface type is not currently supported")
         elif interface_type == "serial":
             log.debug("Finding serial devices")
-            raise Unimplemented("Serial interface type is not currently supported")
+            return serial_port.scan_all_devices()  # Gives us a list of ("serial", device_path, device_path) tuples
         else:
             raise InterfaceError("Unknown interface type")  # Should not reach this (belt and suspenders)
 
@@ -92,8 +93,8 @@ class DeviceManager:
             log.debug("Finding tcp devices")
             raise Unimplemented("TCP interface type is not currently supported")
         elif interface_type == "serial":
-            log.debug("Finding serial devices")
-            raise Unimplemented("Serial interface type is not currently supported")
+            log.debug(f"Connecting to serial device {address}")
+            interface = serial_port.make_connection_and_return(address)
         else:
             raise InterfaceError("Unknown interface type")  # Should not reach this (belt and suspenders)
 
