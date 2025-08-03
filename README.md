@@ -22,6 +22,6 @@ in one place, rather than having to modify a fleet of apps
 Access to Meshtastic devices and external systems
 
 * ble.py - Meshtastic devices via Bluetooth LE
-* serial.py (FUTURE) - Meshtastic devices via serial ports
+* serial_port.py - Meshtastic devices via serial ports
 * tcp.py (FUTURE) - Meshtastic devices via TCP connections
 * email_interface.py - send email via SMTP over TLS
