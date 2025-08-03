@@ -25,3 +25,12 @@ Access to Meshtastic devices and external systems
 * serial_port.py - Meshtastic devices via serial ports
 * tcp.py (FUTURE) - Meshtastic devices via TCP connections
 * email_interface.py - send email via SMTP over TLS
+
+# .env contents
+APP_LOG_NAME=msg_forward.log  
+MSG_LOG_NAME=messages.log  
+SMTP_SERVER=<smtp server address>  
+SMTP_SENDER=<smtp server username>  
+SMTP_PASSWORD=<smtp server password>   
+EMAIL_FROM_ADDRESS=<email-from-address>  
+EMAIL_TO_ADDRESS=<email-to-address>  
