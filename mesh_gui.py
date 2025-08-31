@@ -4,6 +4,7 @@ import wx
 import wx.propgrid as wxpg
 
 from dotenv import dotenv_values
+from pubsub import pub
 
 
 class MainFrame(wx.Frame):
@@ -11,6 +12,8 @@ class MainFrame(wx.Frame):
         # noinspection PyTypeChecker
         wx.Frame.__init__(self, parent, wx.ID_ANY, "AB8OJ Meshtastic Client", size=(800, 600))  # TODO: size tweaking
         self.CreateStatusBar()
+        pub.subscribe(self.onChangeStatusBar, "mainframe.changeStatusBar")
+        pub.subscribe(self.onClearStatusBar, "mainframe.clearStatusBar")
 
         # === Menus
         filemenu = wx.Menu()
@@ -51,6 +54,12 @@ class MainFrame(wx.Frame):
         # TODO: Exit confirmation if configured to do so
         self.Close(True)
 
+    def onChangeStatusBar(self, status_text):
+        self.SetStatusText(status_text)
+
+    def onClearStatusBar(self):
+        self.SetStatusText("")
+
 
 class AppConfigPanel(wx.Panel):
     def __init__(self, parent):
@@ -63,22 +72,41 @@ class AppConfigPanel(wx.Panel):
         outer_box.Add(header_text_box, 0, wx.CENTER | wx.TOP)
 
         button_box = wx.BoxSizer(wx.HORIZONTAL)
-        button_box.Add(wx.Button(self, wx.ID_ANY, "Load"), 0)
-        button_box.Add(wx.Button(self, wx.ID_ANY, "Save"), 0)
+        reload_button = wx.Button(self, label="Reload")
+        button_box.Add(reload_button, 0)
+        save_button = wx.Button(self, label="Save")
+        button_box.Add(save_button, 0)
+        self.Bind(wx.EVT_BUTTON, self.on_reload_button, reload_button)
+        self.Bind(wx.EVT_MENU, self.on_save_button, save_button)
         outer_box.Add(button_box, 0, wx.CENTER)
 
-        pg = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
-        # TODO: Instead of a default load of the file at init time, should it have blank values until load button?
-        config = dotenv_values(".env")  # TODO: is there a fun way to configure the location of the config file?
-        real_dict = {}
-        for key, value in config.items():
-            real_dict[key] = value
-        pg.SetPropertyValues(real_dict, autofill=True)  # For some reason, this doesn't work with OrderedDict
-        outer_box.Add(pg, 1, wx.EXPAND)
+        self.pg = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
+        self.reload_env(self.pg)
+        outer_box.Add(self.pg, 1, wx.EXPAND)
 
         self.SetSizer(outer_box)
         self.SetAutoLayout(True)
         outer_box.Fit(self)
+
+    def reload_env(self, property_grid):
+        """
+        Reload .env into a property grid
+        SetPropertyValues cannot handle OrderedDicts so we have to convert it to a plain dict
+        Dicts now remember insertion order (Python 3.7+), so this conversion preserves key order
+        """
+        real_dict = {key: value for key, value in dotenv_values(".env").items()}
+        property_grid.SetPropertyValues(real_dict, autofill=True)
+        return
+
+    def on_reload_button(self, event):
+        confirm = wx.RichMessageDialog(self, "Are you sure you want to reload .env?",
+                                   style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
+        if confirm.ShowModal() == wx.ID_OK:
+            self.reload_env(self.pg)
+            pub.sendMessage("mainframe.changeStatusBar", status_text=".env reloaded")
+
+    def on_save_button(self, event):
+        pass
 
 class DevicesPanel(wx.Panel):
     def __init__(self, parent):
