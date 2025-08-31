@@ -16,16 +16,16 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.onClearStatusBar, "mainframe.clearStatusBar")
 
         # === Menus
-        filemenu = wx.Menu()
         # Note that some IDs don't display in these menus if the host platform provides it in another menu (e.g. Mac)
-        menu_exit = filemenu.Append(wx.ID_EXIT, "Exit", " Exit")
-        self.Bind(wx.EVT_MENU, self.on_exit, menu_exit)
-        menu_fruit = filemenu.Append(100, "Banana")  # TODO: Obviously, replace with something more useful
-        self.Bind(wx.EVT_MENU, self.fruit_selected, menu_fruit)
+        filemenu = wx.Menu()
+        filemenu_exit = filemenu.Append(wx.ID_EXIT, "Exit", " Exit")
+        self.Bind(wx.EVT_MENU, self.onExit, filemenu_exit)
+        filemenu_fruit = filemenu.Append(wx.ID_ANY, "Banana")  # TODO: Obviously, replace with something more useful
+        self.Bind(wx.EVT_MENU, self.onFruitSelected, filemenu_fruit)
 
         aboutmenu = wx.Menu()
         aboutmenu.Append(wx.ID_ABOUT, "About", " Aboout this program")
-        aboutmenu.Append(900, "Version")
+        aboutmenu.Append(wx.ID_ANY, "Version")
 
         menubar = wx.MenuBar()
         menubar.Append(filemenu, "File")
@@ -41,8 +41,9 @@ class MainFrame(wx.Frame):
 
         self.Show(True)
 
+    # === Menu events
     # noinspection PyUnusedLocal
-    def fruit_selected(self, event):
+    def onFruitSelected(self, event):
         # NOTE: standard MessageDialog always displays a folder icon on Mac OS X, so use RichMessageDialog instead
         dlg = wx.RichMessageDialog(self, "Banana for scale", "",
                                    wx.OK | wx.ICON_INFORMATION)
@@ -50,10 +51,11 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     # noinspection PyUnusedLocal
-    def on_exit(self, event):
+    def onExit(self, event):
         # TODO: Exit confirmation if configured to do so
         self.Close(True)
 
+    # === Pub/sub events
     def onChangeStatusBar(self, status_text):
         self.SetStatusText(status_text)
 
@@ -61,6 +63,7 @@ class MainFrame(wx.Frame):
         self.SetStatusText("")
 
 
+# === Panels for the main listbook
 class AppConfigPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, wx.ID_ANY)
@@ -76,8 +79,8 @@ class AppConfigPanel(wx.Panel):
         button_box.Add(reload_button, 0)
         save_button = wx.Button(self, label="Save")
         button_box.Add(save_button, 0)
-        self.Bind(wx.EVT_BUTTON, self.on_reload_button, reload_button)
-        self.Bind(wx.EVT_MENU, self.on_save_button, save_button)
+        self.Bind(wx.EVT_BUTTON, self.onReloadButton, reload_button)
+        self.Bind(wx.EVT_MENU, self.onSaveButton, save_button)
         outer_box.Add(button_box, 0, wx.CENTER)
 
         self.pg = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
@@ -88,7 +91,8 @@ class AppConfigPanel(wx.Panel):
         self.SetAutoLayout(True)
         outer_box.Fit(self)
 
-    def reload_env(self, property_grid):
+    @staticmethod
+    def reload_env(property_grid):
         """
         Reload .env into a property grid
         SetPropertyValues cannot handle OrderedDicts so we have to convert it to a plain dict
@@ -96,17 +100,19 @@ class AppConfigPanel(wx.Panel):
         """
         real_dict = {key: value for key, value in dotenv_values(".env").items()}
         property_grid.SetPropertyValues(real_dict, autofill=True)
+        # TODO: Un-bold all property grid values
         return
 
-    def on_reload_button(self, event):
+    def onReloadButton(self, event):
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload .env?",
                                    style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
             self.reload_env(self.pg)
             pub.sendMessage("mainframe.changeStatusBar", status_text=".env reloaded")
 
-    def on_save_button(self, event):
+    def onSaveButton(self, event):
         pass
+
 
 class DevicesPanel(wx.Panel):
     def __init__(self, parent):
