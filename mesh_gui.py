@@ -36,10 +36,10 @@ class MainFrame(wx.Frame):
 
         # === Listbook and panels
         lb = wx.Listbook(self, style=wx.LB_LEFT)
-        lb.AddPage(AppConfigPanel(lb), "Application configuration")
-        lb.AddPage(DevicesPanel(lb), "Devices")
+        lb.AddPage(DevicesPanel(lb), "Devices", select=True)
         lb.AddPage(MessagesPanel(lb), "Messages")
         lb.AddPage(NodesPanel(lb), "Nodes")
+        lb.AddPage(AppConfigPanel(lb), "Application configuration")
 
         self.Show(True)
 
