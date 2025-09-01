@@ -1,10 +1,12 @@
 # Meshtastic client GUI
+import shutil
 
 import wx
 import wx.propgrid as wxpg
 
-from dotenv import dotenv_values
+from dotenv import dotenv_values, set_key
 from pubsub import pub
+import pathlib
 
 
 class MainFrame(wx.Frame):
@@ -80,8 +82,11 @@ class AppConfigPanel(wx.Panel):
         save_button = wx.Button(self, label="Save")
         button_box.Add(save_button, 0)
         self.Bind(wx.EVT_BUTTON, self.onReloadButton, reload_button)
-        self.Bind(wx.EVT_MENU, self.onSaveButton, save_button)
+        self.Bind(wx.EVT_BUTTON, self.onSaveButton, save_button)
         outer_box.Add(button_box, 0, wx.CENTER)
+
+        # TODO: Email validator for email properties (see bottom of dev doc for snippets)
+        # TODO: self.dotenv_file = dotenv.find_dotenv() to find .env file
 
         self.pg = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         self.reload_env(self.pg)
@@ -100,18 +105,44 @@ class AppConfigPanel(wx.Panel):
         """
         real_dict = {key: value for key, value in dotenv_values(".env").items()}
         property_grid.SetPropertyValues(real_dict, autofill=True)
-        # TODO: Un-bold all property grid values
+        property_grid.ClearModifiedStatus()
         return
 
+    # noinspection PyUnusedLocal
     def onReloadButton(self, event):
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload .env?",
-                                   style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
+                                       style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
             self.reload_env(self.pg)
             pub.sendMessage("mainframe.changeStatusBar", status_text=".env reloaded")
 
+    # noinspection PyUnusedLocal
     def onSaveButton(self, event):
-        pass
+        # TODO: Add error checking, especially for set_key
+        # Save a backup copy of .env
+        pathlib.Path(".env.bak").unlink(missing_ok=True)
+        shutil.copy(pathlib.Path(".env"), pathlib.Path(".env.bak"))
+
+        # Sadly we have to iterate through all properties to find those that have changed
+        changed_keys = []
+        iterator = self.pg.GetIterator(wx.propgrid.PG_ITERATE_NORMAL)
+        while not iterator.AtEnd():
+            prop = iterator.GetProperty()
+            if self.pg.IsPropertyModified(prop):
+                prop_name = prop.GetName()
+                prop_value = prop.GetValue()
+                set_key(".env", prop_name, prop_value)
+                changed_keys.append(prop_name)
+            iterator.Next()
+
+        if changed_keys:
+            key_string = ", ".join(changed_keys)
+            wx.RichMessageDialog(self, "Changed items:\n" + key_string,style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+            self.pg.ClearModifiedStatus()
+        else:
+            wx.RichMessageDialog(self, "No items have been changed",style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+
+        return
 
 
 class DevicesPanel(wx.Panel):
