@@ -31,6 +31,8 @@ class TopPanel(wx.Panel):
         connect_button = wx.Button(self, wx.ID_ANY, "Connect")
         disconnect_button = wx.Button(self, wx.ID_ANY, "Disconnect")
         self.Bind(wx.EVT_BUTTON, self.onDiscoverButton, discover_button)
+        self.Bind(wx.EVT_BUTTON, self.onConnectButton, connect_button)
+        self.Bind(wx.EVT_BUTTON, self.onDisconnectButton, disconnect_button)
         device_button_box.Add(discover_button)
         device_button_box.Add(self.discover_ble)
         device_button_box.Add(self.discover_serial)
@@ -59,6 +61,7 @@ class TopPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onDiscoverButton(self, event):
         # TODO: Find a way to make a "busy note" work on Mac
+        # TODO: preserve connection status for connected devices or don't allow rediscover if any are connected
         device_types = []
         if self.discover_ble.IsChecked():
             device_types.append("ble")
@@ -80,7 +83,6 @@ class TopPanel(wx.Panel):
             if not discovered_devices:
                 return
 
-        # TODO: on a rediscover, preserve connection status for connected devices
         for dev_type, address, name in discovered_devices:
             self.device_list.InsertStringItem(self.device_list_index, "")
             self.device_list.SetStringItem(self.device_list_index, 0, "Disconnected")
@@ -90,6 +92,45 @@ class TopPanel(wx.Panel):
             self.device_list_index = +1
 
         return
+
+    # noinspection PyUnusedLocal
+    def onConnectButton(self, event):
+        # TODO: Can connect button be disabled until a device is highlighted?
+        # TODO: Deal with messages to stdout from mesh manager
+        # TODO: Disallow reconnection to already-connected device (and handle failed disconnect somehow)
+        selected_item = self.device_list.GetFirstSelected()
+        if selected_item == -1:
+            wx.RichMessageDialog(self, "A device must be selected", style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
+        dev_type = self.device_list.GetItemText(selected_item, 1)
+        address = self.device_list.GetItemText(selected_item, 2)
+        try:
+            device_interface = self.device_manager.connect_to_specific_device(dev_type, address)
+        except Exception as e:
+            wx.RichMessageDialog(self, f"Error connecting to device: {str(e)}",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
+        self.device_list.SetStringItem(selected_item, 0, "Connected")
+        return
+
+    # noinspection PyUnusedLocal
+    def onDisconnectButton(self, event):
+        # TODO: go implement disconnect_from_specific_device, remembering the BLE disconnect bug
+        selected_item = self.device_list.GetFirstSelected()
+        if selected_item == -1:
+            wx.RichMessageDialog(self, "A device must be selected", style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
+        address = self.device_list.GetItemText(selected_item, 2)
+        try:
+            self.device_manager.disconnect_from_specific_device(address)
+        except Exception as e:
+            wx.RichMessageDialog(self, f"Error disconnecting from device: {str(e)}",)
+            return
+
+        self.device_list.SetStringItem(selected_item, 0, "Disconnected")
 
 
 class BottomPanel(wx.Panel):

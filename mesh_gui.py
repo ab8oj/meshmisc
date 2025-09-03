@@ -69,6 +69,7 @@ def main():
     client_app = wx.App(False)  # Do not redirect stdin.stdout to a window yet
     MainFrame(None)
     client_app.MainLoop()
+    # TODO: disconnect from any connected devices
     client_app.Destroy()
     # TODO: other cleanup here
 
