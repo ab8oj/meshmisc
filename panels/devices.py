@@ -1,4 +1,5 @@
 import wx
+from pubsub import pub
 
 from mesh_managers import DeviceManager
 
@@ -44,10 +45,10 @@ class TopPanel(wx.Panel):
         # TODO: Make the device list box expand to the right as frame expands
         device_list_box = wx.BoxSizer(wx.VERTICAL)  # Right side of device box: device list
         self.device_list = wx.ListCtrl(self, style=wx.LC_REPORT)
-        self.device_list.InsertColumn(0, 'Status')
-        self.device_list.InsertColumn(1, 'Type')
-        self.device_list.InsertColumn(2, 'Short name')
-        self.device_list.InsertColumn(3, 'Long name')
+        self.device_list.InsertColumn(0, 'Name')
+        self.device_list.InsertColumn(1, 'Status')
+        self.device_list.InsertColumn(2, 'Type')
+        self.device_list.InsertColumn(3, 'Address')
         self.device_list_index = 0  # Start with 0 items -- do I really need this?
         device_list_box.Add(self.device_list, 1, flag=wx.EXPAND)
         device_box.Add(device_list_box)
@@ -57,6 +58,9 @@ class TopPanel(wx.Panel):
         device_box.Fit(self)
 
         self.device_manager = DeviceManager()
+
+        pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
+        pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
 
     # noinspection PyUnusedLocal
     def onDiscoverButton(self, event):
@@ -83,12 +87,9 @@ class TopPanel(wx.Panel):
             if not discovered_devices:
                 return
 
+        # TODO: How will the split of name work out for serial and TCP devices?
         for dev_type, address, name in discovered_devices:
-            self.device_list.InsertStringItem(self.device_list_index, "")
-            self.device_list.SetStringItem(self.device_list_index, 0, "Disconnected")
-            self.device_list.SetStringItem(self.device_list_index, 1, dev_type)
-            self.device_list.SetStringItem(self.device_list_index, 2, address)
-            self.device_list.SetStringItem(self.device_list_index, 3, name)
+            self.device_list.Append((name.split("_")[0], "Disconnected", dev_type, address))
             self.device_list_index = +1
 
         return
@@ -103,8 +104,8 @@ class TopPanel(wx.Panel):
             wx.RichMessageDialog(self, "A device must be selected", style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        dev_type = self.device_list.GetItemText(selected_item, 1)
-        address = self.device_list.GetItemText(selected_item, 2)
+        dev_type = self.device_list.GetItemText(selected_item, 2)
+        address = self.device_list.GetItemText(selected_item, 3)
         try:
             device_interface = self.device_manager.connect_to_specific_device(dev_type, address)
         except Exception as e:
@@ -112,7 +113,6 @@ class TopPanel(wx.Panel):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        self.device_list.SetStringItem(selected_item, 0, "Connected")
         return
 
     # noinspection PyUnusedLocal
@@ -123,14 +123,41 @@ class TopPanel(wx.Panel):
             wx.RichMessageDialog(self, "A device must be selected", style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        address = self.device_list.GetItemText(selected_item, 2)
+        address = self.device_list.GetItemText(selected_item, 3)
         try:
+            # TODO: Need to implement this in ble.py
             self.device_manager.disconnect_from_specific_device(address)
         except Exception as e:
             wx.RichMessageDialog(self, f"Error disconnecting from device: {str(e)}",)
             return
 
-        self.device_list.SetStringItem(selected_item, 0, "Disconnected")
+
+    def onConnectionUp(self, interface):
+        short_name = interface.getShortName()
+        message = f"Connection established on interface {short_name}"
+        pub.sendMessage("mainframe.changeStatusBar", status_text=message)
+        index = self.device_list.FindItem(-1, short_name)
+        if index == -1:
+            message = (f"WARNING: Device with address {short_name} was not found in the node list, "
+                       f"connection status cannot be updated")
+            pub.sendMessage("mainframe.changeStatusBar", status_text=message)
+        else:
+            self.device_list.SetItem(index, 1, "Connected")
+        return
+
+    def onConnectionDown(self, interface):
+        # TODO: Turning off a BLE device doesn't seem to publish to this topic. Why?
+        short_name = interface.getShortName()
+        message = f"Connection lost on interface {short_name}"
+        pub.sendMessage("mainframe.changeStatusBar", status_text=message)
+        index = self.device_list.FindItem(-1, short_name)
+        if index == -1:
+            message = (f"WARNING: Device with address {short_name} was not found in the node list, "
+                       f"connection status cannot be updated")
+            pub.sendMessage("mainframe.changeStatusBar", status_text=message)
+        else:
+            self.device_list.SetItem(index, 1, "Disconnected")
+        return
 
 
 class BottomPanel(wx.Panel):
