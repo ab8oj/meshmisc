@@ -44,7 +44,7 @@ class TopPanel(wx.Panel):
 
         # TODO: Make the device list box expand to the right as frame expands
         device_list_box = wx.BoxSizer(wx.VERTICAL)  # Right side of device box: device list
-        self.device_list = wx.ListCtrl(self, style=wx.LC_REPORT)
+        self.device_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         self.device_list.InsertColumn(0, 'Name')
         self.device_list.InsertColumn(1, 'Status')
         self.device_list.InsertColumn(2, 'Type')
@@ -91,6 +91,11 @@ class TopPanel(wx.Panel):
         for dev_type, address, name in discovered_devices:
             self.device_list.Append((name.split("_")[0], "Disconnected", dev_type, address))
             self.device_list_index = +1
+            # TODO: Change explicit columns to "for x in range(number_of_columns)
+            self.device_list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+            self.device_list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+            self.device_list.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+            self.device_list.SetColumnWidth(3, wx.LIST_AUTOSIZE)
 
         return
 
