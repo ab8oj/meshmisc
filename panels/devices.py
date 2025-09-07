@@ -2,7 +2,8 @@ import wx
 from pubsub import pub
 
 from mesh_managers import DeviceManager
-from gui_events import set_status_bar, refresh_panel, EVT_REFRESH_PANEL
+from gui_events import (set_status_bar, EVT_REFRESH_PANEL,
+                        update_connection_status, EVT_UPDATE_CONNECTION_STATUS)
 
 
 class DevicesPanel(wx.Panel):
@@ -57,6 +58,7 @@ class DevicesPanel(wx.Panel):
 
         self.device_manager = DeviceManager()
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel)
+        self.Bind(EVT_UPDATE_CONNECTION_STATUS, self.update_connection_status)
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
 
@@ -65,6 +67,19 @@ class DevicesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def refresh_panel(self, event):
         self.Layout()
+
+    def update_connection_status(self, event):
+        short_name = event.name
+        status = event.status
+        index = self.device_list.FindItem(-1, short_name)
+        if index == -1:
+            message = (f"WARNING: Device with address {short_name} was not found in the node list, "
+                       f"connection status cannot be updated")
+            wx.RichMessageDialog(self, message, style=wx.ICON_WARNING).ShowModal()
+        else:
+            self.device_list.SetItem(index, 1, status)
+            self.Layout()
+        return
 
     # noinspection PyUnusedLocal
     def onDiscoverButton(self, event):
@@ -158,32 +173,17 @@ class DevicesPanel(wx.Panel):
     https://stackoverflow.com/questions/50914555/compatibility-between-pypubsub-and-pyqt
     https://stackoverflow.com/questions/68174615/python-multithreading-with-pypubsub-and-wx
     """
-    # TODO: consider moving the update-connection-status-in-list code to an event or a new function on the panel
 
     # noinspection PyUnusedLocal
     def onConnectionUp(self, interface):
         short_name = interface.getShortName()
-        index = self.device_list.FindItem(-1, short_name)
-        if index == -1:
-            message = (f"WARNING: Device with address {short_name} was not found in the node list, "
-                       f"connection status cannot be updated")
-            wx.RichMessageDialog(self, message, style=wx.ICON_WARNING).ShowModal()
-        else:
-            self.device_list.SetItem(index, 1, "Connected")
-            wx.PostEvent(self, refresh_panel())
-            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection established to {short_name}"))
+        wx.PostEvent(self, update_connection_status(name=short_name, status="Connected"))
+        wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection established to {short_name}"))
         return
 
     def onConnectionDown(self, interface):
         # TODO: Turning off a BLE device doesn't seem to publish to this topic. Why?
         short_name = interface.getShortName()
-        index = self.device_list.FindItem(-1, short_name)
-        if index == -1:
-            message = (f"WARNING: Device with address {short_name} was not found in the node list, "
-                       f"connection status cannot be updated")
-            wx.RichMessageDialog(self, message, style=wx.ICON_WARNING).ShowModal()
-        else:
-            self.device_list.SetItem(index, 1, "Disonnected")
-            wx.PostEvent(self, refresh_panel)
-            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection lost to {short_name}"))
+        wx.PostEvent(self, update_connection_status(name=short_name, status="Disconnected"))
+        wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection lost to {short_name}"))
         return
