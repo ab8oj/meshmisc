@@ -59,8 +59,11 @@ class DevicesPanel(wx.Panel):
         self.device_manager = DeviceManager()
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel)
         self.Bind(EVT_UPDATE_CONNECTION_STATUS, self.update_connection_status)
+
+        # Non-GUI stuff
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
+        self.interfaces = {}  # key = device shortname, value = MeshInterface object for that device
 
     # === wxPython events
 
@@ -69,11 +72,14 @@ class DevicesPanel(wx.Panel):
         self.Layout()
 
     def update_connection_status(self, event):
-        short_name = event.name
+        if event.name:
+            short_name = event.name
+        else:
+            short_name = "unknown"  # triggers status-cannot-be-updated dialog below
         status = event.status
         index = self.device_list.FindItem(-1, short_name)
         if index == -1:
-            message = (f"WARNING: Device with address {short_name} was not found in the node list, "
+            message = (f"WARNING: Device with name {short_name} was not found in the node list, "
                        f"connection status cannot be updated")
             wx.RichMessageDialog(self, message, style=wx.ICON_WARNING).ShowModal()
         else:
@@ -124,8 +130,15 @@ class DevicesPanel(wx.Panel):
             wx.RichMessageDialog(self, "A device must be selected", style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
+        name = self.device_list.GetItemText(selected_item, 0)
+        status = self.device_list.GetItemText(selected_item, 1)
         dev_type = self.device_list.GetItemText(selected_item, 2)
         address = self.device_list.GetItemText(selected_item, 3)
+
+        if status != "Disconnected":
+            wx.RichMessageDialog(self, f"Cannot connect to device {name} because its status is {status}",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
         try:
             device_interface = self.device_manager.connect_to_specific_device(dev_type, address)
         except Exception as e:
@@ -133,23 +146,31 @@ class DevicesPanel(wx.Panel):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
+        self.interfaces[name] = device_interface
         return
 
     # noinspection PyUnusedLocal
     def onDisconnectButton(self, event):
-        # TODO: go implement disconnect_from_specific_device, remembering the BLE disconnect bug
         selected_item = self.device_list.GetFirstSelected()
         if selected_item == -1:
             wx.RichMessageDialog(self, "A device must be selected", style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        address = self.device_list.GetItemText(selected_item, 3)
+        name = self.device_list.GetItemText(selected_item, 0)
+        dev_type = self.device_list.GetItemText(selected_item, 2)
+        if dev_type == "ble":
+            # Warn use about BLE disconnect bug (might be Mac-specific)
+            wx.RichMessageDialog(self, "WARNING: BLE device disconnects hang on some platforms, "
+                                       "force-quit the application if the disconnect hangs",
+                                 style=wx.ICON_WARNING | wx.OK).ShowModal()
         try:
-            # TODO: Need to implement this in ble.py
-            self.device_manager.disconnect_from_specific_device(address)
+            self.interfaces[name].close()
         except Exception as e:
             wx.RichMessageDialog(self, f"Error disconnecting from device: {str(e)}",)
             return
+
+        self.interfaces.pop(name, None)
+        return
 
     # noinspection PyUnusedLocal
     def onDeviceSelected(self, event):

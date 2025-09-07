@@ -10,6 +10,7 @@ from gui_events import EVT_SET_STATUS_BAR
 import wx
 
 
+# TODO: Implement logging
 class MainFrame(wx.Frame):
     def __init__(self, parent):
         # noinspection PyTypeChecker

@@ -88,6 +88,7 @@ class DeviceManager:
 
         if interface_type == "ble":
             log.info(f"Connecting to ble device {address}")
+            # TODO: a connection error does not seem to raise an exception (e.g. double conn = no such dev address)
             interface = ble.make_connection_and_return(address)  # Let exceptions fly past us to the caller
         elif interface_type == "tcp":
             log.debug("Finding tcp devices")
@@ -99,9 +100,6 @@ class DeviceManager:
             raise InterfaceError("Unknown interface type")  # Should not reach this (belt and suspenders)
 
         return interface
-
-    def disconnect_from_specific_device(self, address):
-        pass
 
     def connect_to_first_device_on_type(self, interface_type: str):
         pass
