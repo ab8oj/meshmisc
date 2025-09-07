@@ -1,10 +1,10 @@
 import wx
 import wx.propgrid as wxpg
-
 from dotenv import dotenv_values, set_key
-from pubsub import pub
 import pathlib
 import shutil
+
+from gui_events import set_status_bar
 
 class AppConfigPanel(wx.Panel):
     def __init__(self, parent):
@@ -54,7 +54,7 @@ class AppConfigPanel(wx.Panel):
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
             self.reload_env(self.pg)
-            pub.sendMessage("mainframe.changeStatusBar", status_text=".env reloaded")
+            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=".env reloaded"))
 
     # noinspection PyUnusedLocal
     def onSaveButton(self, event):
@@ -83,4 +83,3 @@ class AppConfigPanel(wx.Panel):
             wx.RichMessageDialog(self, "No items have been changed",style=wx.OK | wx.ICON_INFORMATION).ShowModal()
 
         return
-

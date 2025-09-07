@@ -2,6 +2,7 @@ import wx
 from pubsub import pub
 
 from mesh_managers import DeviceManager
+from gui_events import set_status_bar, refresh_panel, EVT_REFRESH_PANEL
 
 
 class DevicesPanel(wx.Panel):
@@ -55,8 +56,15 @@ class DevicesPanel(wx.Panel):
         device_box.Fit(self)
 
         self.device_manager = DeviceManager()
+        self.Bind(EVT_REFRESH_PANEL, self.refresh_panel)
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
+
+    # === wxPython events
+
+    # noinspection PyUnusedLocal
+    def refresh_panel(self, event):
+        self.Layout()
 
     # noinspection PyUnusedLocal
     def onDiscoverButton(self, event):
@@ -110,8 +118,6 @@ class DevicesPanel(wx.Panel):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        self.temp_text.SetLabel("Connection pending")
-
         return
 
     # noinspection PyUnusedLocal
@@ -141,10 +147,21 @@ class DevicesPanel(wx.Panel):
         self.connect_button.Disable()
         self.disconnect_button.Disable()
 
+    # === Meshtastic pub/sub topic handlers
+    """
+    IMPORTANT NOTE: Evidently these get *called* by the same thread that does the SendMessage, so they
+    execute in a Meshtastic device thread context, not in the main GUI thread. This prevents us from
+    directly manipulating the GUI through things like layout(). Changing values of widgets in the GUI does
+    seem to execute, but the updates are not seen in the GUI until the window is jiggled.
+    
+    For this reason, we need to use wxPython events rather than pub/sub to do certain GUI things like Layout()
+    https://stackoverflow.com/questions/50914555/compatibility-between-pypubsub-and-pyqt
+    https://stackoverflow.com/questions/68174615/python-multithreading-with-pypubsub-and-wx
+    """
+    # TODO: consider moving the update-connection-status-in-list code to an event or a new function on the panel
+
     # noinspection PyUnusedLocal
     def onConnectionUp(self, interface):
-        # TODO: Connection status does not update until window is manipulated
-        # TODO: Trying to do layout() in here or "widget changed" handler crashes w/thread error
         short_name = interface.getShortName()
         index = self.device_list.FindItem(-1, short_name)
         if index == -1:
@@ -153,8 +170,8 @@ class DevicesPanel(wx.Panel):
             wx.RichMessageDialog(self, message, style=wx.ICON_WARNING).ShowModal()
         else:
             self.device_list.SetItem(index, 1, "Connected")
-        self.temp_text.SetLabel("Device informtion still goes here ")
-
+            wx.PostEvent(self, refresh_panel())
+            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection established to {short_name}"))
         return
 
     def onConnectionDown(self, interface):
@@ -166,5 +183,7 @@ class DevicesPanel(wx.Panel):
                        f"connection status cannot be updated")
             wx.RichMessageDialog(self, message, style=wx.ICON_WARNING).ShowModal()
         else:
-            self.device_list.SetItem(index, 1, "Disconnected")
+            self.device_list.SetItem(index, 1, "Disonnected")
+            wx.PostEvent(self, refresh_panel)
+            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection lost to {short_name}"))
         return

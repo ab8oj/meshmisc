@@ -4,9 +4,10 @@ from panels.app_config import AppConfigPanel
 from panels.devices import DevicesPanel
 from panels.nodes import NodesPanel
 from panels.messages import MessagesPanel
+from gui_events import EVT_SET_STATUS_BAR
+
 
 import wx
-from pubsub import pub
 
 
 class MainFrame(wx.Frame):
@@ -14,8 +15,7 @@ class MainFrame(wx.Frame):
         # noinspection PyTypeChecker
         wx.Frame.__init__(self, parent, wx.ID_ANY, "AB8OJ Meshtastic Client", size=(800, 600))  # TODO: size tweaking
         self.CreateStatusBar()
-        pub.subscribe(self.onChangeStatusBar, "mainframe.changeStatusBar")
-        pub.subscribe(self.onClearStatusBar, "mainframe.clearStatusBar")
+        self.Bind(EVT_SET_STATUS_BAR, self.setStatusBar)
 
         # === Menus
         # Note that some IDs don't display in these menus if the host platform provides it in another menu (e.g. Mac)
@@ -57,12 +57,9 @@ class MainFrame(wx.Frame):
         # TODO: Exit confirmation if configured to do so
         self.Close(True)
 
-    # === Pub/sub events
-    def onChangeStatusBar(self, status_text):
-        self.SetStatusText(status_text)
-
-    def onClearStatusBar(self):
-        self.SetStatusText("")
+    # === wxPython events
+    def setStatusBar(self, event):
+        self.SetStatusText(event.text)
 
 
 def main():
