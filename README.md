@@ -34,3 +34,13 @@ SMTP_SENDER=<smtp server username>
 SMTP_PASSWORD=<smtp server password>   
 EMAIL_FROM_ADDRESS=<email-from-address>  
 EMAIL_TO_ADDRESS=<email-to-address>  
+
+## Important note about handling Meshtastic pub/sub events
+Evidently these get *called* by the same thread that does the SendMessage, so they
+execute in a Meshtastic device thread context, not in the main GUI thread. This prevents us from
+directly manipulating the GUI through things like layout(). Changing values of widgets in the GUI does
+seem to execute, but the updates are not seen in the GUI until the window is jiggled.
+    
+For this reason, we need to use wxPython events rather than pub/sub to do certain GUI things like Layout()
+https://stackoverflow.com/questions/50914555/compatibility-between-pypubsub-and-pyqt
+https://stackoverflow.com/questions/68174615/python-multithreading-with-pypubsub-and-wx

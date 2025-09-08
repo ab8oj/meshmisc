@@ -35,10 +35,10 @@ class DevicesPanel(wx.Panel):
 
         device_list_box = wx.BoxSizer(wx.VERTICAL)  # Right side of device box: device list
         self.device_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
-        self.device_list.InsertColumn(0, 'Name')
-        self.device_list.InsertColumn(1, 'Status')
-        self.device_list.InsertColumn(2, 'Type')
-        self.device_list.InsertColumn(3, 'Address')
+        self.device_list.InsertColumn(0, 'Name', width=wx.LIST_AUTOSIZE)
+        self.device_list.InsertColumn(1, 'Status', width=wx.LIST_AUTOSIZE)
+        self.device_list.InsertColumn(2, 'Int', width=wx.LIST_AUTOSIZE)
+        self.device_list.InsertColumn(3, 'Address', width=wx.LIST_AUTOSIZE)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onDeviceSelected, self.device_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onDeviceDeselected, self.device_list)
         device_list_box.Add(self.device_list, 1, flag=wx.EXPAND)
@@ -63,7 +63,7 @@ class DevicesPanel(wx.Panel):
         # Non-GUI stuff
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
-        self.interfaces = {}  # key = device shortname, value = MeshInterface object for that device
+        self.connected_interfaces = {}  # key = device shortname, value = MeshInterface object for that device
 
     # === wxPython events
 
@@ -140,13 +140,12 @@ class DevicesPanel(wx.Panel):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
         try:
-            device_interface = self.device_manager.connect_to_specific_device(dev_type, address)
+            self.connected_interfaces[name] = self.device_manager.connect_to_specific_device(dev_type, address)
         except Exception as e:
             wx.RichMessageDialog(self, f"Error connecting to device: {str(e)}",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        self.interfaces[name] = device_interface
         return
 
     # noinspection PyUnusedLocal
@@ -164,12 +163,14 @@ class DevicesPanel(wx.Panel):
                                        "force-quit the application if the disconnect hangs",
                                  style=wx.ICON_WARNING | wx.OK).ShowModal()
         try:
-            self.interfaces[name].close()
+            self.connected_interfaces[name].close()
         except Exception as e:
             wx.RichMessageDialog(self, f"Error disconnecting from device: {str(e)}",)
             return
 
-        self.interfaces.pop(name, None)
+        # Remove the old interface object but don't close the associated windows. If a reconnect happens, the
+        # key (name) will still be the same, so all the windows will still match up with the new object
+        self.connected_interfaces.pop(name, None)
         return
 
     # noinspection PyUnusedLocal
@@ -185,14 +186,7 @@ class DevicesPanel(wx.Panel):
 
     # === Meshtastic pub/sub topic handlers
     """
-    IMPORTANT NOTE: Evidently these get *called* by the same thread that does the SendMessage, so they
-    execute in a Meshtastic device thread context, not in the main GUI thread. This prevents us from
-    directly manipulating the GUI through things like layout(). Changing values of widgets in the GUI does
-    seem to execute, but the updates are not seen in the GUI until the window is jiggled.
-    
-    For this reason, we need to use wxPython events rather than pub/sub to do certain GUI things like Layout()
-    https://stackoverflow.com/questions/50914555/compatibility-between-pypubsub-and-pyqt
-    https://stackoverflow.com/questions/68174615/python-multithreading-with-pypubsub-and-wx
+    IMPORTANT NOTE: See README.md for important details about handling Meshtastic pub/sub messages.
     """
 
     # noinspection PyUnusedLocal
