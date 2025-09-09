@@ -1,5 +1,4 @@
 import wx
-from pubsub import pub
 from ObjectListView3 import ObjectListView, ColumnDefn
 
 from gui_events import EVT_REFRESH_PANEL
@@ -14,7 +13,7 @@ class ChannelMessagesPanel(wx.Panel):
         self.msg_device_picker = wx.Choice(self, wx.ID_ANY, choices=[], name="Device")
         """
         When device is selected:
-        - populate channel picker and reset channel choice to none
+        - populate channel picker and reset channel choice to none and set self.selected_node
         """
         self.msg_device_picker.SetSelection(wx.NOT_FOUND)
         sizer.Add(self.msg_device_picker, 0, flag=wx.EXPAND)
@@ -23,6 +22,7 @@ class ChannelMessagesPanel(wx.Panel):
         """
         When channel is selected:
         - add channel buffer if it does not exist
+        - set self.selected_channel
         - self.messages.SetObjects(this channel's message dict)  Will a list work? or must it be a dict?
         """
         self.msg_channel_picker.SetSelection(wx.NOT_FOUND)
@@ -65,19 +65,32 @@ class ChannelMessagesPanel(wx.Panel):
         }
         """
 
-        self.Bind(EVT_REFRESH_PANEL, self.refresh_panel)
+        self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
 
+        self.selected_node = None
+        self.selected_channel = None
+        self.message_buffer = {}
 
     # === wxPython events
 
     # noinspection PyUnusedLocal
-    def refresh_panel(self, event):
+    def refresh_panel_event(self, event):
         self.Layout()
 
-    # === Meshtastic pub/sub topic handlers
-    """
-    IMPORTANT NOTE: See README.md for important details about handling Meshtastic pub/sub messages.
-    """
-
-    def onMessageReceived(self, packet, interface):
-        pass
+    # Channel (non-direct) message received
+    def receive_message_event(self, event):
+        node = event.node
+        channel = event.channel
+        timestamp = event.timestamp
+        text = event.message
+        if not node or not channel:
+            # TODO: log the error
+            return
+        if node not in self.message_buffer:
+            self.message_buffer[node] = {}
+        if channel not in self.message_buffer[node]:
+            self.message_buffer[node][channel] = []
+        message_dict = {"timestamp": timestamp, "message": text}
+        self.message_buffer[node][channel].append(message_dict)
+        if node == self.selected_node and channel == self.selected_channel:
+            self.messages.SetObjects(self.message_buffer[node][channel])
