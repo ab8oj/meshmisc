@@ -3,7 +3,7 @@
 from panels.app_config import AppConfigPanel
 from panels.devices import DevicesPanel
 from panels.nodes import NodesPanel
-from panels.messages import MessagesPanel
+from panels.channel_messages import ChannelMessagesPanel
 from gui_events import EVT_SET_STATUS_BAR
 
 
@@ -38,7 +38,8 @@ class MainFrame(wx.Frame):
         # === Listbook and panels
         lb = wx.Listbook(self, style=wx.LB_LEFT)
         lb.AddPage(DevicesPanel(lb), "Devices", select=True)
-        lb.AddPage(MessagesPanel(lb), "Messages")
+        lb.AddPage(ChannelMessagesPanel(lb), "Channel Messages")
+        # TODO: Direct messages panel goes here
         lb.AddPage(NodesPanel(lb), "Nodes")
         lb.AddPage(AppConfigPanel(lb), "Application configuration")
 
