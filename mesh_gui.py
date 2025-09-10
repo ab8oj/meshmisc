@@ -1,14 +1,14 @@
 # Meshtastic client GUI
+from datetime import datetime
+
+import wx
+from pubsub import pub
 
 from panels.app_config import AppConfigPanel
 from panels.devices import DevicesPanel
 from panels.nodes import NodesPanel
 from panels.channel_messages import ChannelMessagesPanel
-from gui_events import EVT_SET_STATUS_BAR
-
-
-import wx
-
+from gui_events import EVT_SET_STATUS_BAR, process_received_message
 
 # TODO: Implement logging
 class MainFrame(wx.Frame):
@@ -36,14 +36,18 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menubar)
 
         # === Listbook and panels
-        lb = wx.Listbook(self, style=wx.LB_LEFT)
-        lb.AddPage(DevicesPanel(lb), "Devices", select=True)
-        lb.AddPage(ChannelMessagesPanel(lb), "Channel Messages")
+        self.lb = wx.Listbook(self, style=wx.LB_LEFT)
+        self.lb.AddPage(DevicesPanel(self.lb), "Devices", select=True)
+        self.lb.AddPage(ChannelMessagesPanel(self.lb), "Channel Messages")
         # TODO: Direct messages panel goes here
-        lb.AddPage(NodesPanel(lb), "Nodes")
-        lb.AddPage(AppConfigPanel(lb), "Application configuration")
+        self.lb.AddPage(NodesPanel(self.lb), "Nodes")
+        self.lb.AddPage(AppConfigPanel(self.lb), "Application configuration")
 
         self.Show(True)
+
+        pub.subscribe(self.onIncomingMessage, "meshtastic.receive.text")
+
+        return
 
     # === Menu events
     # noinspection PyUnusedLocal
@@ -62,6 +66,29 @@ class MainFrame(wx.Frame):
     # === wxPython events
     def setStatusBar(self, event):
         self.SetStatusText(event.text)
+
+    # === Meshtastic pub/sub topic handlers
+    """
+    IMPORTANT NOTE: See README.md for important details about handling Meshtastic pub/sub messages.
+    """
+
+    def onIncomingMessage(self, packet, interface):
+        # TODO: Implement wantAck (see https://deepwiki.com/meshtastic/Meshtastic-Apple/2.2-mesh-packets)
+        our_shortname = interface.getShortName()
+        if "raw" in packet and hasattr(packet["raw"], "channel"):
+            channel = packet["raw"].channel
+        else:
+            channel = "Unknown"
+        text_message = packet.get("decoded", {}).get("text", "Unknown text")
+        if "fromId" in packet and packet["fromId"] is not None:
+            from_shortname = interface.nodes[packet["fromId"]].get("user", {}).get("shortName", "Unknown")
+        else:
+            from_shortname = "UNK?"
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+        chm_panel = self.lb.GetPage(1)  # TODO: replace hardcoded page number with something that finds it
+        wx.PostEvent(chm_panel, process_received_message(node=our_shortname, channel=channel, sender=from_shortname,
+                                                         timestamp=now, message=text_message))
 
 
 def main():

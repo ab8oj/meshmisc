@@ -1,7 +1,7 @@
 import wx
 from ObjectListView3 import ObjectListView, ColumnDefn
 
-from gui_events import EVT_REFRESH_PANEL
+from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE
 
 
 class ChannelMessagesPanel(wx.Panel):
@@ -13,7 +13,7 @@ class ChannelMessagesPanel(wx.Panel):
         self.msg_device_picker = wx.Choice(self, wx.ID_ANY, choices=[], name="Device")
         """
         When device is selected:
-        - populate channel picker and reset channel choice to none and set self.selected_node
+        - populate channel picker and reset channel choice to none and set self.selected_device
         """
         self.msg_device_picker.SetSelection(wx.NOT_FOUND)
         sizer.Add(self.msg_device_picker, 0, flag=wx.EXPAND)
@@ -29,10 +29,11 @@ class ChannelMessagesPanel(wx.Panel):
         sizer.Add(self.msg_channel_picker, 0, flag=wx.EXPAND)
 
         # TODO: expand to full size
-        # TODO: column widths (make 'message' take up the rest of the space after timestamp)
+        # TODO: column widths (make 'message' take up the rest of the space after sender)
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
             ColumnDefn("Timestamp", "left", -1, isEditable=False),
+            ColumnDefn("Sender", "left", -1, isEditable=False),
             ColumnDefn("Message", "left", -1, isEditable=False),
         ])
         sizer.Add(self.messages, 0, flag=wx.EXPAND)
@@ -41,35 +42,24 @@ class ChannelMessagesPanel(wx.Panel):
         self.SetAutoLayout(True)
         sizer.Fit(self)
 
-        """
-        Picture this:
-        main program gets message events
-        message event handler:
-        - uses an event to send direct messages to direct msg panel
-        - used an event to send channel messages to channel msg panel
-        - event:    fromnode=node coming from, timestamp=timestamp received by device, not by client app
-        -           message=message text, channel=channel
-        receiving panel:
-        - puts message into backing store e.g. messages[node][channel]  or direct_messages[node][fromnode]
-        """
+        self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
+        self.Bind(EVT_PROCESS_RECEIVED_MESSAGE, self.receive_message_event)
 
+        self.selected_device = None  # Device last selected , so we don't have to call control's method every time
+        self.selected_channel = None  # Ditto for channel last selected
+        self.message_buffer = {}
         """
-        Backing store: 
-        messages[nodename][channel] is a list of {timestamp: ts, message: text}
+        message_buffer[devicename][channel] is a list of messages: {timestamp: ts, message: text}
         
-        {nodename:
-            {channel:[           
-                {"timestamp": timestamp,
-                 "message": message}
-            ]}
+        {devicename:
+            {channel number:[           
+                {"Timestamp": timestamp,
+                 "Sender": sender,
+                 "Message": message}
+                ]
+            }
         }
         """
-
-        self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
-
-        self.selected_node = None
-        self.selected_channel = None
-        self.message_buffer = {}
 
     # === wxPython events
 
@@ -77,20 +67,18 @@ class ChannelMessagesPanel(wx.Panel):
     def refresh_panel_event(self, event):
         self.Layout()
 
-    # Channel (non-direct) message received
+    # Channel (non-direct) message received (event sent here from pub/sub handler in main app)
     def receive_message_event(self, event):
         node = event.node
         channel = event.channel
+        sender = event.sender
         timestamp = event.timestamp
         text = event.message
-        if not node or not channel:
-            # TODO: log the error
-            return
         if node not in self.message_buffer:
             self.message_buffer[node] = {}
         if channel not in self.message_buffer[node]:
             self.message_buffer[node][channel] = []
-        message_dict = {"timestamp": timestamp, "message": text}
+        message_dict = {"timestamp": timestamp, "sender": sender, "message": text}
         self.message_buffer[node][channel].append(message_dict)
-        if node == self.selected_node and channel == self.selected_channel:
-            self.messages.SetObjects(self.message_buffer[node][channel])
+        # if node == self.selected_device and channel == self.selected_channel:
+        self.messages.SetObjects(self.message_buffer[node][channel])
