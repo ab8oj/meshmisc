@@ -194,7 +194,7 @@ class DevicesPanel(wx.Panel):
         short_name = interface.getShortName()
         wx.PostEvent(self, update_connection_status(name=short_name, status="Connected"))
         wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection established to {short_name}"))
-        wx.PostEvent(self.GetTopLevelParent(), announce_new_device(name=short_name))
+        wx.PostEvent(self.GetTopLevelParent(), announce_new_device(name=short_name, interface=interface))
         return
 
     def onConnectionDown(self, interface):

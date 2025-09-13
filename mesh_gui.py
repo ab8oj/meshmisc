@@ -74,7 +74,7 @@ class MainFrame(wx.Frame):
 
     def announceNewDevice(self, event):
         # send events to children that need to know about new devices
-        wx.PostEvent(self.chm_panel, add_device(name=event.name))
+        wx.PostEvent(self.chm_panel, add_device(name=event.name, interface=event.interface))
 
     # === Meshtastic pub/sub topic handlers
     """
@@ -83,6 +83,7 @@ class MainFrame(wx.Frame):
 
     def onIncomingMessage(self, packet, interface):
         # TODO: Implement wantAck (see https://deepwiki.com/meshtastic/Meshtastic-Apple/2.2-mesh-packets)
+        # TODO: when direct message panel gets implemented, split direct messages to that and ^all to channel panel
         our_shortname = interface.getShortName()
         if "raw" in packet and hasattr(packet["raw"], "channel"):
             channel = packet["raw"].channel
