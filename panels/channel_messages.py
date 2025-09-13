@@ -49,10 +49,10 @@ class ChannelMessagesPanel(wx.Panel):
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.selected_channel = None  # Ditto for channel last selected
         self.interfaces = {}  # key = shortname, value is an interface object
+        self.null_message_list = [{"timestamp": None, "sender": None, "message": None}]
         self.message_buffer = {}
         """
         message_buffer[devicename][channel] is a list of messages: {timestamp: ts, message: text}
-        
         {devicename:
             {channel number:[           
                 {"Timestamp": timestamp,
@@ -66,35 +66,25 @@ class ChannelMessagesPanel(wx.Panel):
     # === wxPython events
 
     def onDevicePickerChoice(self, evt):
-        self.selected_device = evt.GetSelection()
+        # Note that this also fires when the first item is added
+        self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
 
         # Repopulate the channel list with the new device's channels
-        self.msg_channel_list.ClearAll()
+        self.msg_channel_list.DeleteAllItems()
         channel_list = self.interfaces[self.selected_device].localNode.channels
         for chan in channel_list:
             if chan.role != 0:
                 self.msg_channel_list.Append((chan.index, chan.settings.name))
-        self.msg_channel_list.Select(0)
 
-    # TODO NEXT: implement message display for each channel
     def onChannelSelected(self, evt):
-        pass
-        """
-        When channel is selected:
-        - add channel buffer if it does not exist
-        - set self.selected_channel
-        - self.messages.SetObjects(this channel's message dict)  Will a list work? or must it be a dict?
-        """
+        # It seems like this could fire before the first device selection event
+        self.selected_channel = evt.GetIndex()
+        if self.selected_channel not in self.message_buffer[self.selected_device]:
+            self.message_buffer[self.selected_device][self.selected_channel] = []
+        self.messages.SetObjects(self.message_buffer[self.selected_device][self.selected_channel])
 
     def onChannelDeselected(self, evt):
-        # A channel should always be selected. wx.ListCtrl does not have a built-in way to enforce that.
-        # If a channel is deselected and there's no following selection event, re-select the last one
-        wx.CallAfter(self.doForcedSelection, evt.GetIndex())
-
-    def doForcedSelection(self, sel):
-        # If nothing is selected after a deselect event, re-select the last one
-        if self.msg_channel_list.GetSelectedItemCount() == 0:
-            self.msg_channel_list.Select(sel)
+        self.messages.SetObjects(self.null_message_list)
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
@@ -111,6 +101,9 @@ class ChannelMessagesPanel(wx.Panel):
 
         # Add the new device to the device picker and message buffer
         self.msg_device_picker.Append(device_name)
+        if self.msg_device_picker.GetCount() == 1:  # this is the first device, auto-select it
+            self.selected_device = device_name
+            self.msg_device_picker.Select(0)
         if device_name not in self.message_buffer:
             self.message_buffer[device_name] = {}
 
@@ -119,25 +112,23 @@ class ChannelMessagesPanel(wx.Panel):
             if chan.index not in self.message_buffer[device_name]:
                 self.message_buffer[device_name][chan.index] = []
 
-        # Populate the channel list and select the first channel by default
+        # Populate the channel list
         for chan in channel_list:
             if chan.role != 0:
                 self.msg_channel_list.Append((chan.index, chan.settings.name))
-        self.msg_channel_list.Select(0)
 
-    # TODO NEXT: finish this.
     # Channel (non-direct) message received (event sent here from pub/sub handler in main app)
     def receive_message_event(self, event):
-        node = event.node
+        device = event.device
         channel = event.channel
         sender = event.sender
         timestamp = event.timestamp
         text = event.message
-        if node not in self.message_buffer:
-            self.message_buffer[node] = {}
-        if channel not in self.message_buffer[node]:
-            self.message_buffer[node][channel] = []
+        if device not in self.message_buffer:
+            self.message_buffer[device] = {}
+        if channel not in self.message_buffer[device]:
+            self.message_buffer[device][channel] = []
         message_dict = {"timestamp": timestamp, "sender": sender, "message": text}
-        self.message_buffer[node][channel].append(message_dict)
-        # if node == self.selected_device and channel == self.selected_channel:
-        self.messages.SetObjects(self.message_buffer[node][channel])
+        self.message_buffer[device][channel].append(message_dict)
+        if device == self.selected_device and channel == self.selected_channel:
+            self.messages.SetObjects(self.message_buffer[device][channel])

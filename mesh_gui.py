@@ -97,9 +97,9 @@ class MainFrame(wx.Frame):
                 from_shortname = "????"
         else:
             from_shortname = "UNK?"
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        wx.PostEvent(self.chm_panel, process_received_message(node=our_shortname, channel=channel,
+        wx.PostEvent(self.chm_panel, process_received_message(device=our_shortname, channel=channel,
                                                               sender=from_shortname, timestamp=now,
                                                               message=text_message))
 
