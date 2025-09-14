@@ -1,6 +1,7 @@
 import wx
 
-from gui_events import EVT_REFRESH_PANEL, EVT_ADD_DEVICE
+from gui_events import EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED
+
 
 class NodesPanel(wx.Panel):
     def __init__(self, parent):
@@ -37,6 +38,7 @@ class NodesPanel(wx.Panel):
 
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
+        self.Bind(EVT_NODE_UPDATED, self.receive_node_event)
 
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.selected_node = None  # Ditto for node last selected
@@ -93,7 +95,31 @@ class NodesPanel(wx.Panel):
             self.node_list.Append((node, node_dict[node]["user"]["shortName"],
                                    node_dict[node]["user"]["longName"]))
 
+    # noinspection PyUnusedLocal
     def receive_node_event(self, event):
-        # *** Add node message pubsub handler in main app and dispatch it here, interface and maybe the name
-        # *** Make sure node doesn't already exist before adding it to the node list
-        pass
+        # TODO: Doesn't look like we get an immediate node change event on a name change, dig deeper
+        # TODO: change to using .get() for key error avoidance
+        node = event.node
+        interface = event.interface  # Not used here, just document its existence
+
+        node_id = node["user"]["id"]
+        short_name = node["user"]["shortName"]
+        long_name = node["user"]["longName"]
+        matching_list_item = self.node_list.FindItem(-1, node_id)
+
+        # If the node is not in the list, add it. If it is, update it if shortname or longname has changed
+        if matching_list_item == wx.NOT_FOUND:
+            self.node_list.Append((node_id, short_name, long_name))
+        else:
+            list_shortname = self.node_list.GetItem(matching_list_item, 1)
+            list_longname = self.node_list.GetItem(matching_list_item, 2)
+            if list_shortname != short_name or list_longname != long_name:
+                self.node_list.DeleteItem(matching_list_item)
+                self.node_list.Append((node_id, short_name, long_name))
+            # If the node is currently selected, update the node info the easy way: deselect and reselect it
+            # This will cause a re-read of that node's info from the selected device
+            if self.node_list.IsSelected(matching_list_item):
+                self.node_list.Select(matching_list_item, 0)
+                self.node_list.Select(matching_list_item, 1)
+
+        return

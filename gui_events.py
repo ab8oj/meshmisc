@@ -8,3 +8,4 @@ update_connection_status, EVT_UPDATE_CONNECTION_STATUS = wx.lib.newevent.NewEven
 process_received_message, EVT_PROCESS_RECEIVED_MESSAGE = wx.lib.newevent.NewEvent()
 add_device, EVT_ADD_DEVICE = wx.lib.newevent.NewEvent()
 announce_new_device, EVT_ANNOUNCE_NEW_DEVICE = wx.lib.newevent.NewEvent()
+node_updated, EVT_NODE_UPDATED = wx.lib.newevent.NewEvent()

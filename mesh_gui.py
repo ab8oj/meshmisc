@@ -9,7 +9,7 @@ from panels.devices import DevicesPanel
 from panels.nodes import NodesPanel
 from panels.channel_messages import ChannelMessagesPanel
 from panels.direct_messages import DirectMessagesPanel
-from gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANNOUNCE_NEW_DEVICE, add_device
+from gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANNOUNCE_NEW_DEVICE, add_device, node_updated
 
 
 # TODO: Implement logging
@@ -53,6 +53,7 @@ class MainFrame(wx.Frame):
         self.Show(True)
 
         pub.subscribe(self.onIncomingMessage, "meshtastic.receive.text")
+        pub.subscribe(self.onNodeUpdated, "meshtastic.node.updated")
 
         self.Bind(EVT_ANNOUNCE_NEW_DEVICE, self.announceNewDevice)
 
@@ -89,6 +90,7 @@ class MainFrame(wx.Frame):
 
     def onIncomingMessage(self, packet, interface):
         # TODO: Implement wantAck (see https://deepwiki.com/meshtastic/Meshtastic-Apple/2.2-mesh-packets)
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         my_shortname = interface.getShortName()
         my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")
 
@@ -96,7 +98,9 @@ class MainFrame(wx.Frame):
             channel = packet["raw"].channel
         else:
             channel = "Unknown"
+
         text_message = packet.get("decoded", {}).get("text", "Unknown text")
+
         if "fromId" in packet:
             if packet["fromId"] in interface.nodes:
                 from_shortname = interface.nodes[packet["fromId"]].get("user", {}).get("shortName", "Unknown")
@@ -104,8 +108,6 @@ class MainFrame(wx.Frame):
                 from_shortname = "????"
         else:
             from_shortname = "UNK?"
-
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         to_id = packet.get("toId", "Unknown ToId")
         if to_id == my_node_id:
@@ -119,6 +121,10 @@ class MainFrame(wx.Frame):
         else:
             print("to_id is neither my noode ID nor ^all, that should not have happened")
 
+        return
+
+    def onNodeUpdated(self, node, interface):
+        wx.PostEvent(self.node_panel, node_updated(node=node, interface=interface))
         return
 
 
