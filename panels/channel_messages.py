@@ -9,34 +9,34 @@ class ChannelMessagesPanel(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)  # Outer box
 
         dev_picker_label = wx.StaticText(self, wx.ID_ANY, "Devices")
-        self.msg_device_picker = wx.Choice(self, wx.ID_ANY, choices=[], name="Device", style=wx.CB_SORT)
+        self.msg_device_picker = wx.Choice(self, wx.ID_ANY, choices=[], name="Device",
+                                           size=wx.Size(150, 20),
+                                           style=wx.CB_SORT | wx.ALIGN_TOP)
         self.msg_device_picker.SetSelection(wx.NOT_FOUND)
         self.Bind(wx.EVT_CHOICE, self.onDevicePickerChoice, self.msg_device_picker)
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
-        sizer.Add(self.msg_device_picker, 0, flag=wx.EXPAND)
+        sizer.Add(self.msg_device_picker, 0)
 
-        # TODO: set length to no more than 8 rows
-        # TODO: set column widths
-        # TODO: Break up channel part into channel list on the left and channel info on the right
         channel_list_label = wx.StaticText(self, wx.ID_ANY, "Channels")
         self.msg_channel_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
-        self.msg_channel_list.InsertColumn(0, '#', width=wx.LIST_AUTOSIZE)
-        self.msg_channel_list.InsertColumn(1, 'Name', width=wx.LIST_AUTOSIZE)
+        self.msg_channel_list.SetMinSize(wx.Size(-1,100))
+        self.msg_channel_list.SetMaxSize(wx.Size(-1,150))  # May want to adjust max size later
+        self.msg_channel_list.InsertColumn(0, '#', width=20)
+        self.msg_channel_list.InsertColumn(1, 'Name', width=300)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onChannelSelected, self.msg_channel_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onChannelDeselected, self.msg_channel_list)
         sizer.Add(channel_list_label, 0, flag=wx.LEFT)
-        sizer.Add(self.msg_channel_list, 1, flag=wx.EXPAND)
+        sizer.Add(self.msg_channel_list, 1)
 
-        # TODO: column widths (make 'message' take up the rest of the space after sender)
         messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
-            ColumnDefn("Timestamp", "left", -1, "timestamp", isEditable=False),
-            ColumnDefn("Sender", "left", -1, "sender", isEditable=False),
-            ColumnDefn("Message", "left", -1, "message", isEditable=False),
+            ColumnDefn("Timestamp", "left", 150, "timestamp", isEditable=False),
+            ColumnDefn("Sender", "left", 50, "sender", isEditable=False),
+            ColumnDefn("Message", "left", -1, "message", isEditable=False, isSpaceFilling=True),
         ])
         sizer.Add(messages_label, 0, flag=wx.LEFT)
-        sizer.Add(self.messages, 1, flag=wx.EXPAND)
+        sizer.Add(self.messages, 4, flag=wx.EXPAND)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -83,6 +83,7 @@ class ChannelMessagesPanel(wx.Panel):
             self.message_buffer[self.selected_device][self.selected_channel] = []
         self.messages.SetObjects(self.message_buffer[self.selected_device][self.selected_channel])
 
+    # noinspection PyUnusedLocal
     def onChannelDeselected(self, evt):
         self.messages.SetObjects(self.null_message_list)
 
