@@ -80,6 +80,7 @@ class MainFrame(wx.Frame):
         # send events to children that need to know about new devices
         wx.PostEvent(self.chm_panel, add_device(name=event.name, interface=event.interface))
         wx.PostEvent(self.dm_panel, add_device(name=event.name, interface=event.interface))
+        wx.PostEvent(self.node_panel, add_device(name=event.name, interface=event.interface))
 
     # === Meshtastic pub/sub topic handlers
     """
