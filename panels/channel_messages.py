@@ -70,6 +70,10 @@ class ChannelMessagesPanel(wx.Panel):
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
 
         # Repopulate the channel list with the new device's channels
+        # DeleteAllItems doesn't seem to generate a deselect event, force deselect so messages get cleared
+        selected_channel = self.msg_channel_list.GetFirstSelected()
+        if selected_channel != -1:
+            self.msg_channel_list.Select(selected_channel, 0)
         self.msg_channel_list.DeleteAllItems()
         channel_list = self.interfaces[self.selected_device].localNode.channels
         for chan in channel_list:
