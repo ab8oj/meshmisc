@@ -35,6 +35,7 @@ class ChannelMessagesPanel(wx.Panel):
             ColumnDefn("Sender", "left", 50, "sender", isEditable=False),
             ColumnDefn("Message", "left", -1, "message", isEditable=False, isSpaceFilling=True),
         ])
+        self.messages.SetEmptyListMsg("No messages")
         sizer.Add(messages_label, 0, flag=wx.LEFT)
         sizer.Add(self.messages, 4, flag=wx.EXPAND)
 
@@ -49,7 +50,6 @@ class ChannelMessagesPanel(wx.Panel):
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.selected_channel = None  # Ditto for channel last selected
         self.interfaces = {}  # key = shortname, value is an interface object
-        self.null_message_list = [{"timestamp": None, "sender": None, "message": None}]
         self.message_buffer = {}
         """
         message_buffer[devicename][channel] is a list of messages: {timestamp: ts, message: text}
@@ -85,7 +85,7 @@ class ChannelMessagesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onChannelDeselected(self, evt):
-        self.messages.SetObjects(self.null_message_list)
+        self.messages.SetObjects([])
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
