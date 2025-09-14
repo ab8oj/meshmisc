@@ -8,6 +8,7 @@ from panels.app_config import AppConfigPanel
 from panels.devices import DevicesPanel
 from panels.nodes import NodesPanel
 from panels.channel_messages import ChannelMessagesPanel
+from panels.direct_messages import DirectMessagesPanel
 from gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANNOUNCE_NEW_DEVICE, add_device
 
 
@@ -42,9 +43,12 @@ class MainFrame(wx.Frame):
         self.devices_panel = self.lb.GetPage(0)
         self.lb.AddPage(ChannelMessagesPanel(self.lb), "Channel Messages")
         self.chm_panel = self.lb.GetPage(1)
-        # TODO: Direct messages panel goes here
+        self.lb.AddPage(DirectMessagesPanel(self.lb), "Direct Messages")
+        self.dm_panel = self.lb.GetPage(2)
         self.lb.AddPage(NodesPanel(self.lb), "Nodes")
+        self.node_panel = self.lb.GetPage(3)
         self.lb.AddPage(AppConfigPanel(self.lb), "Application configuration")
+        self.ac_panel = self.lb.GetPage(4)
 
         self.Show(True)
 
@@ -75,6 +79,7 @@ class MainFrame(wx.Frame):
     def announceNewDevice(self, event):
         # send events to children that need to know about new devices
         wx.PostEvent(self.chm_panel, add_device(name=event.name, interface=event.interface))
+        wx.PostEvent(self.dm_panel, add_device(name=event.name, interface=event.interface))
 
     # === Meshtastic pub/sub topic handlers
     """
@@ -83,8 +88,9 @@ class MainFrame(wx.Frame):
 
     def onIncomingMessage(self, packet, interface):
         # TODO: Implement wantAck (see https://deepwiki.com/meshtastic/Meshtastic-Apple/2.2-mesh-packets)
-        # TODO: when direct message panel gets implemented, split direct messages to that and ^all to channel panel
-        our_shortname = interface.getShortName()
+        my_shortname = interface.getShortName()
+        my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")
+
         if "raw" in packet and hasattr(packet["raw"], "channel"):
             channel = packet["raw"].channel
         else:
@@ -97,11 +103,22 @@ class MainFrame(wx.Frame):
                 from_shortname = "????"
         else:
             from_shortname = "UNK?"
+
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        wx.PostEvent(self.chm_panel, process_received_message(device=our_shortname, channel=channel,
-                                                              sender=from_shortname, timestamp=now,
-                                                              message=text_message))
+        to_id = packet.get("toId", "Unknown ToId")
+        if to_id == my_node_id:
+            wx.PostEvent(self.dm_panel, process_received_message(device=my_shortname, channel=channel,
+                                                                  sender=from_shortname, timestamp=now,
+                                                                  message=text_message))
+        elif to_id == "^all":
+            wx.PostEvent(self.chm_panel, process_received_message(device=my_shortname, channel=channel,
+                                                                  sender=from_shortname, timestamp=now,
+                                                                  message=text_message))
+        else:
+            print("to_id is neither my noode ID nor ^all, that should not have happened")
+
+        return
 
 
 def main():
