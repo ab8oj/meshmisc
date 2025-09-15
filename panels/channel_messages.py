@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import wx
 from ObjectListView3 import ObjectListView, ColumnDefn
 
@@ -38,6 +40,14 @@ class ChannelMessagesPanel(wx.Panel):
         self.messages.SetEmptyListMsg("No messages")
         sizer.Add(messages_label, 0, flag=wx.LEFT)
         sizer.Add(self.messages, 4, flag=wx.EXPAND)
+
+        send_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.send_button = wx.Button(self, wx.ID_ANY, "Send")
+        self.send_text = wx.TextCtrl(self, wx.ID_ANY)
+        self.Bind(wx.EVT_BUTTON, self.onSendButton, self.send_button)
+        send_sizer.Add(self.send_button, 0, flag=wx.LEFT)
+        send_sizer.Add(self.send_text, 1, flag=wx.EXPAND)
+        sizer.Add(send_sizer, 0, flag=wx.EXPAND)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -90,6 +100,33 @@ class ChannelMessagesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onChannelDeselected(self, evt):
         self.messages.SetObjects([])
+
+    # noinspection PyUnusedLocal
+    def onSendButton(self, evt):
+        # TODO: Disable the Send button until and unless device and channel are selected and there is text to send
+        text_to_send = self.send_text.GetValue()
+        if text_to_send is None or text_to_send.strip() == "":
+            wx.RichMessageDialog(self, "No text to send",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
+        if self.selected_device is None or self.selected_device == "":
+            wx.RichMessageDialog(self, "No device selected",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
+        if self.selected_channel is None or self.selected_channel == -1:
+            wx.RichMessageDialog(self, "No channel selected",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        channel_index = int(self.msg_channel_list.GetItemText(self.selected_channel, 0))
+        self.interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
+        self.message_buffer[self.selected_device][self.selected_channel].append(
+            {"timestamp": now, "sender": self.selected_device, "message": text_to_send})
+        self.messages.SetObjects(self.message_buffer[self.selected_device][self.selected_channel])
+        self.send_text.Clear()
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
