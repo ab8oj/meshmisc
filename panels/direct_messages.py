@@ -76,6 +76,8 @@ class DirectMessagesPanel(wx.Panel):
             self.message_buffer[device_name] = []
 
     def receive_message_event(self, event):
+        # TODO: Add message to the new per-sender message buffer, to support sender conversations
+        #   Which means sent direct messages will also have to go there, remember to do that as well
         device = event.device
         sender = event.sender
         timestamp = event.timestamp

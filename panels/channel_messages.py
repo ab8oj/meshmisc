@@ -76,6 +76,7 @@ class ChannelMessagesPanel(wx.Panel):
     # === wxPython events
 
     def onDevicePickerChoice(self, evt):
+        # TODO: How to handle channels with still-unread messages
         # Note that this also fires when the first item is added
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
 
@@ -91,6 +92,7 @@ class ChannelMessagesPanel(wx.Panel):
                 self.msg_channel_list.Append((chan.index, chan.settings.name))
 
     def onChannelSelected(self, evt):
+        # TODO: un-highlight the channel when selected
         # It seems like this could fire before the first device selection event
         self.selected_channel = evt.GetIndex()
         if self.selected_channel not in self.message_buffer[self.selected_device]:
@@ -161,6 +163,7 @@ class ChannelMessagesPanel(wx.Panel):
 
     # Channel (non-direct) message received (event sent here from pub/sub handler in main app)
     def receive_message_event(self, event):
+        # TODO: Highlight the channel that got the message
         device = event.device
         channel = event.channel
         sender = event.sender
