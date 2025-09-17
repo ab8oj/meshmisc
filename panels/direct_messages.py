@@ -18,6 +18,9 @@ class DirectMessagesPanel(wx.Panel):
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
         sizer.Add(self.msg_device_picker, 0)
 
+        messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
+        sizer.Add(messages_label, 0, flag=wx.LEFT)
+
         message_button_box = wx.BoxSizer(wx.HORIZONTAL)
         self.quick_msg_button = wx.Button(self, wx.ID_ANY, "Send direct message")
         self.convo_button = wx.Button(self, wx.ID_ANY, "Show conversation")
@@ -30,7 +33,6 @@ class DirectMessagesPanel(wx.Panel):
         sizer.Add(message_button_box, 0)
 
         # TODO: Change sender column to To and From columns
-        messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
             ColumnDefn("Timestamp", "left", 150, "timestamp", isEditable=False),
@@ -40,7 +42,6 @@ class DirectMessagesPanel(wx.Panel):
         self.messages.SetEmptyListMsg("No messages")
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onMessageSelected, self.messages)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onMessageDeselected, self.messages)
-        sizer.Add(messages_label, 0, flag=wx.LEFT)
         sizer.Add(self.messages, 4, flag=wx.EXPAND)
 
         self.SetSizer(sizer)
