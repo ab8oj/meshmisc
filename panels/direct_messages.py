@@ -1,4 +1,5 @@
 import wx
+from datetime import datetime
 from ObjectListView3 import ObjectListView, ColumnDefn
 
 from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE
@@ -17,6 +18,18 @@ class DirectMessagesPanel(wx.Panel):
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
         sizer.Add(self.msg_device_picker, 0)
 
+        message_button_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.quick_msg_button = wx.Button(self, wx.ID_ANY, "Send direct message")
+        self.convo_button = wx.Button(self, wx.ID_ANY, "Show conversation")
+        self.quick_msg_button.Disable()
+        self.convo_button.Disable()
+        self.Bind(wx.EVT_BUTTON, self.onQuickMsgButton, self.quick_msg_button)
+        self.Bind(wx.EVT_BUTTON, self.onConvoButton, self.convo_button)
+        message_button_box.Add(self.quick_msg_button)
+        message_button_box.Add(self.convo_button)
+        sizer.Add(message_button_box, 0)
+
+        # TODO: Change sender column to To and From columns
         messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
@@ -25,6 +38,8 @@ class DirectMessagesPanel(wx.Panel):
             ColumnDefn("Message", "left", -1, "message", isEditable=False, isSpaceFilling=True),
         ])
         self.messages.SetEmptyListMsg("No messages")
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onMessageSelected, self.messages)
+        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onMessageDeselected, self.messages)
         sizer.Add(messages_label, 0, flag=wx.LEFT)
         sizer.Add(self.messages, 4, flag=wx.EXPAND)
 
@@ -49,11 +64,57 @@ class DirectMessagesPanel(wx.Panel):
         }
         """
 
+    def _find_nodeid_from_shortname(self, shortname):
+        # Brute force for now: shuffle through the interface's node list looking for the shortname
+        for node, node_info in self.interfaces[self.selected_device].nodes.items():
+            if node_info["user"]["shortName"] == shortname:
+                return node
+        return None
+
     # === wxPython events
 
     def onDevicePickerChoice(self, evt):
         # Note that this also fires when the first item is added
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
+
+    def onQuickMsgButton(self, evt):
+        selected_item = self.messages.GetFirstSelected()
+        selected_sender = self.messages[selected_item]["sender"]
+        sender_node_id = self._find_nodeid_from_shortname(selected_sender)
+        if not sender_node_id:
+            wx.RichMessageDialog(self, f"Sender {selected_sender} not found in device node list, cannot send message",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
+        if selected_sender == self.selected_device:
+            confirm = wx.RichMessageDialog(self, "Confirm you want to send a direct message to your own node",
+                                 style=wx.YES | wx.CANCEL | wx.ICON_QUESTION).ShowModal()
+            if confirm != wx.YES:
+                return
+
+        text_prompt = wx.TextEntryDialog(self, "Text to send", "caption", "", style=wx.OK | wx.CANCEL)
+        text_prompt.ShowModal()
+        text_to_send = text_prompt.GetValue()
+        if text_to_send.strip() == "":  # No text entered or cancel was selected
+            return
+
+        self.interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id)
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message_dict = {"timestamp": now, "sender": self.selected_device, "message": text_to_send}
+        self.message_buffer[self.selected_device].append(message_dict)
+        self.messages.SetObjects(self.message_buffer[self.selected_device])
+
+    def onConvoButton(self, evt):
+        wx.RichMessageDialog(self, "Conversation view", style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+
+    def onMessageSelected(self, evt):
+        self.quick_msg_button.Enable()
+        self.convo_button.Enable()
+
+    def onMessageDeselected(self, evt):
+        self.quick_msg_button.Disable()
+        self.convo_button.Disable()
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
