@@ -2,6 +2,7 @@ import wx
 from datetime import datetime
 from ObjectListView3 import ObjectListView, ColumnDefn
 
+import shared
 from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE
 
 class DirectMessagesPanel(wx.Panel):
@@ -103,8 +104,11 @@ class DirectMessagesPanel(wx.Panel):
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message_dict = {"timestamp": now, "sender": self.selected_device, "message": text_to_send}
+        shared_message_dict = {"timestamp": now, "to": selected_sender, "from": self.selected_device,
+                        "message": text_to_send}
         self.message_buffer[self.selected_device].append(message_dict)
         self.messages.SetObjects(self.message_buffer[self.selected_device])
+        shared.node_conversations[self.selected_device][selected_sender] = shared_message_dict
 
     def onConvoButton(self, evt):
         wx.RichMessageDialog(self, "Conversation view", style=wx.OK | wx.ICON_INFORMATION).ShowModal()
@@ -138,15 +142,24 @@ class DirectMessagesPanel(wx.Panel):
             self.message_buffer[device_name] = []
 
     def receive_message_event(self, event):
-        # TODO: Add message to the new per-sender message buffer, to support sender conversations
-        #   Which means sent direct messages will also have to go there, remember to do that as well
         device = event.device
         sender = event.sender
         timestamp = event.timestamp
         text = event.message
+        message_dict = {"timestamp": timestamp, "sender": sender, "message": text}
+        shared_message_dict = {"timestamp": timestamp, "from": sender, "to": device,
+                        "message": text}
+
+        # Add message to this panel's "all direct messages" buffer
         if device not in self.message_buffer:
             self.message_buffer[device] = []
-        message_dict = {"timestamp": timestamp, "sender": sender, "message": text}
         self.message_buffer[device].append(message_dict)
         if device == self.selected_device:
             self.messages.SetObjects(self.message_buffer[device])
+
+        # Add message to the shared node_conversations buffer
+        if device not in shared.node_conversations:
+            shared.node_conversations[device] = {}
+        if sender not in shared.node_conversations[device]:
+            shared.node_conversations[device][sender] = []
+        shared.node_conversations[device][sender].append(shared_message_dict)
