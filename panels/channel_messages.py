@@ -43,8 +43,9 @@ class ChannelMessagesPanel(wx.Panel):
 
         send_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.send_button = wx.Button(self, wx.ID_ANY, "Send")
-        self.send_text = wx.TextCtrl(self, wx.ID_ANY)
+        self.send_text = wx.TextCtrl(self, wx.ID_ANY, style = wx.TE_PROCESS_ENTER)
         self.Bind(wx.EVT_BUTTON, self.onSendButton, self.send_button)
+        self.Bind(wx.EVT_TEXT_ENTER, self.onSendButton, self.send_text)
         send_sizer.Add(self.send_button, 0, flag=wx.LEFT)
         send_sizer.Add(self.send_text, 1, flag=wx.EXPAND)
         sizer.Add(send_sizer, 0, flag=wx.EXPAND)
