@@ -3,7 +3,9 @@ from datetime import datetime
 from ObjectListView3 import ObjectListView, ColumnDefn
 
 import shared
-from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE
+from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_CHILD_CLOSED, refresh_panel
+from panels.node_convo_frame import NodeConvoFrame
+
 
 class DirectMessagesPanel(wx.Panel):
     def __init__(self, parent):
@@ -52,7 +54,9 @@ class DirectMessagesPanel(wx.Panel):
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_PROCESS_RECEIVED_MESSAGE, self.receive_message_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
+        self.Bind(EVT_CHILD_CLOSED, self.child_closed_event)
 
+        self.active_subpanels = []  # List of active node conversation frames that will get refreshed on new messages
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.interfaces = {}  # key = shortname, value is an interface object
         self.message_buffer = {}
@@ -111,7 +115,16 @@ class DirectMessagesPanel(wx.Panel):
         shared.node_conversations[self.selected_device][selected_sender] = shared_message_dict
 
     def onConvoButton(self, evt):
-        wx.RichMessageDialog(self, "Conversation view", style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+        selected_item = self.messages.GetFirstSelected()
+        selected_sender = self.messages[selected_item]["sender"]
+        sender_node_id = self._find_nodeid_from_shortname(selected_sender)
+        if not sender_node_id:
+            wx.RichMessageDialog(self, f"Sender {selected_sender} not found in device node list, cannot send message",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+        node_convo_frame = NodeConvoFrame(self, self.interfaces[self.selected_device], selected_sender, sender_node_id)
+        self.active_subpanels.append(node_convo_frame)
+        node_convo_frame.Show(True)
 
     def onMessageSelected(self, evt):
         self.quick_msg_button.Enable()
@@ -163,3 +176,12 @@ class DirectMessagesPanel(wx.Panel):
         if sender not in shared.node_conversations[device]:
             shared.node_conversations[device][sender] = []
         shared.node_conversations[device][sender].append(shared_message_dict)
+
+        # Tell child windows to update themselves
+        for child in self.active_subpanels:
+            wx.PostEvent(child, refresh_panel())
+
+    def child_closed_event(self, event):
+        child = event.child
+        if child in self.active_subpanels:
+            self.active_subpanels.remove(child)

@@ -9,3 +9,4 @@ process_received_message, EVT_PROCESS_RECEIVED_MESSAGE = wx.lib.newevent.NewEven
 add_device, EVT_ADD_DEVICE = wx.lib.newevent.NewEvent()
 announce_new_device, EVT_ANNOUNCE_NEW_DEVICE = wx.lib.newevent.NewEvent()
 node_updated, EVT_NODE_UPDATED = wx.lib.newevent.NewEvent()
+child_closed, EVT_CHILD_CLOSED = wx.lib.newevent.NewEvent()
