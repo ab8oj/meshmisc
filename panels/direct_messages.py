@@ -59,16 +59,6 @@ class DirectMessagesPanel(wx.Panel):
         self.active_subpanels = []  # List of active node conversation frames that will get refreshed on new messages
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.interfaces = {}  # key = shortname, value is an interface object
-        self.message_buffer = {}
-        """
-        message_buffer[devicename] is a list of messages:
-        {devicename:[           
-            {"Timestamp": timestamp,
-             "Sender": sender,
-             "Message": message}
-            ]
-        }
-        """
 
     def _find_nodeid_from_shortname(self, shortname):
         # Brute force for now: shuffle through the interface's node list looking for the shortname
@@ -83,6 +73,7 @@ class DirectMessagesPanel(wx.Panel):
         # Note that this also fires when the first item is added
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
 
+    # noinspection PyUnusedLocal
     def onQuickMsgButton(self, evt):
         selected_item = self.messages.GetFirstSelected()
         selected_sender = self.messages[selected_item]["sender"]
@@ -110,10 +101,11 @@ class DirectMessagesPanel(wx.Panel):
         message_dict = {"timestamp": now, "sender": self.selected_device, "message": text_to_send}
         shared_message_dict = {"timestamp": now, "to": selected_sender, "from": self.selected_device,
                         "message": text_to_send}
-        self.message_buffer[self.selected_device].append(message_dict)
-        self.messages.SetObjects(self.message_buffer[self.selected_device])
+        shared.direct_messages[self.selected_device].append(message_dict)
+        self.messages.SetObjects(shared.direct_messages[self.selected_device])
         shared.node_conversations[self.selected_device][selected_sender] = shared_message_dict
 
+    # noinspection PyUnusedLocal
     def onConvoButton(self, evt):
         selected_item = self.messages.GetFirstSelected()
         selected_sender = self.messages[selected_item]["sender"]
@@ -126,10 +118,12 @@ class DirectMessagesPanel(wx.Panel):
         self.active_subpanels.append(node_convo_frame)
         node_convo_frame.Show(True)
 
+    # noinspection PyUnusedLocal
     def onMessageSelected(self, evt):
         self.quick_msg_button.Enable()
         self.convo_button.Enable()
 
+    # noinspection PyUnusedLocal
     def onMessageDeselected(self, evt):
         self.quick_msg_button.Disable()
         self.convo_button.Disable()
@@ -151,8 +145,8 @@ class DirectMessagesPanel(wx.Panel):
         if self.msg_device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
             self.msg_device_picker.Select(0)
-        if device_name not in self.message_buffer:
-            self.message_buffer[device_name] = []
+        if device_name not in shared.direct_messages:
+            shared.direct_messages[device_name] = []
 
     def receive_message_event(self, event):
         device = event.device
@@ -164,11 +158,11 @@ class DirectMessagesPanel(wx.Panel):
                         "message": text}
 
         # Add message to this panel's "all direct messages" buffer
-        if device not in self.message_buffer:
-            self.message_buffer[device] = []
-        self.message_buffer[device].append(message_dict)
+        if device not in shared.direct_messages:
+            shared.direct_messages[device] = []
+        shared.direct_messages[device].append(message_dict)
         if device == self.selected_device:
-            self.messages.SetObjects(self.message_buffer[device])
+            self.messages.SetObjects(shared.direct_messages[device])
 
         # Add message to the shared node_conversations buffer
         if device not in shared.node_conversations:

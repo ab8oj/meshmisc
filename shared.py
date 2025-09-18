@@ -15,3 +15,13 @@ node name, based on which direction that particular message was going
 }
 e.g. node_conversations["OJB1"]["nrdW"][0]["message"]
 """
+direct_messages = {}
+"""
+Simpler buffer for all direct messages regardless of node. 
+{devicename:[           
+    {"Timestamp": timestamp,
+     "Sender": sender,
+     "Message": message}
+    ]
+}
+"""
