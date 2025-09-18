@@ -4,7 +4,7 @@ from ObjectListView3 import ObjectListView, ColumnDefn
 from datetime import datetime
 
 import shared
-from gui_events import child_closed, EVT_REFRESH_PANEL
+from gui_events import child_closed, EVT_REFRESH_PANEL, refresh_panel
 
 
 class NodeConvoFrame(wx.Frame):
@@ -65,10 +65,11 @@ class NodeConvoFrame(wx.Frame):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message_dict = {"timestamp": now, "from": self.local_node_name, "to": self.remote_node_name, "message": text_to_send}
         shared.node_conversations[self.local_node_name][self.remote_node_name].append(message_dict)
-        self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name])
+        self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
+                                 preserveSelection=True)
 
-        # TODO NEXT: Move direct_messages main message buffer to shared, so that can be updated here as well.
-        #   Otherwise any messages we send here will be missing from the main direct message list
+        shared.direct_messages[self.local_node_name].append(message_dict)
+        wx.PostEvent(self.GetParent(), refresh_panel())
 
         return
 
@@ -80,4 +81,5 @@ class NodeConvoFrame(wx.Frame):
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
-        self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name])
+        self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
+                                 preserveSelection=True)

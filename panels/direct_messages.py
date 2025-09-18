@@ -39,7 +39,8 @@ class DirectMessagesPanel(wx.Panel):
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
             ColumnDefn("Timestamp", "left", 150, "timestamp", isEditable=False),
-            ColumnDefn("Sender", "left", 50, "sender", isEditable=False),
+            ColumnDefn("From", "left", 50, "from", isEditable=False),
+            ColumnDefn("To", "left", 50, "to", isEditable=False),
             ColumnDefn("Message", "left", -1, "message", isEditable=False, isSpaceFilling=True),
         ])
         self.messages.SetEmptyListMsg("No messages")
@@ -76,18 +77,15 @@ class DirectMessagesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onQuickMsgButton(self, evt):
         selected_item = self.messages.GetFirstSelected()
-        selected_sender = self.messages[selected_item]["sender"]
+        if self.messages[selected_item]["from"] != self.selected_device:  # Remote node name could be in either column
+            selected_sender = self.messages[selected_item]["from"]
+        else:
+            selected_sender = self.messages[selected_item]["to"]
         sender_node_id = self._find_nodeid_from_shortname(selected_sender)
         if not sender_node_id:
             wx.RichMessageDialog(self, f"Sender {selected_sender} not found in device node list, cannot send message",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
-
-        if selected_sender == self.selected_device:
-            confirm = wx.RichMessageDialog(self, "Confirm you want to send a direct message to your own node",
-                                 style=wx.YES | wx.CANCEL | wx.ICON_QUESTION).ShowModal()
-            if confirm != wx.YES:
-                return
 
         text_prompt = wx.TextEntryDialog(self, "Text to send", "caption", "", style=wx.OK | wx.CANCEL)
         text_prompt.ShowModal()
@@ -98,17 +96,21 @@ class DirectMessagesPanel(wx.Panel):
         self.interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id)
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        message_dict = {"timestamp": now, "sender": self.selected_device, "message": text_to_send}
-        shared_message_dict = {"timestamp": now, "to": selected_sender, "from": self.selected_device,
+        message_dict = {"timestamp": now, "from": self.selected_device, "to": selected_sender,
                         "message": text_to_send}
         shared.direct_messages[self.selected_device].append(message_dict)
-        self.messages.SetObjects(shared.direct_messages[self.selected_device])
-        shared.node_conversations[self.selected_device][selected_sender] = shared_message_dict
+        self.messages.SetObjects(shared.direct_messages[self.selected_device], preserveSelection=True)
+        shared.node_conversations[self.selected_device][selected_sender].append(message_dict)
+        for child in self.active_subpanels:
+            wx.PostEvent(child, refresh_panel())
 
     # noinspection PyUnusedLocal
     def onConvoButton(self, evt):
         selected_item = self.messages.GetFirstSelected()
-        selected_sender = self.messages[selected_item]["sender"]
+        if self.messages[selected_item]["from"] != self.selected_device:  # Remote node name could be in either column
+            selected_sender = self.messages[selected_item]["from"]
+        else:
+            selected_sender = self.messages[selected_item]["to"]
         sender_node_id = self._find_nodeid_from_shortname(selected_sender)
         if not sender_node_id:
             wx.RichMessageDialog(self, f"Sender {selected_sender} not found in device node list, cannot send message",
@@ -130,7 +132,7 @@ class DirectMessagesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
-        self.Layout()
+        self.messages.SetObjects(shared.direct_messages[self.selected_device], preserveSelection=True)
 
     def add_device_event(self, evt):
         device_name = evt.name
@@ -153,23 +155,21 @@ class DirectMessagesPanel(wx.Panel):
         sender = event.sender
         timestamp = event.timestamp
         text = event.message
-        message_dict = {"timestamp": timestamp, "sender": sender, "message": text}
-        shared_message_dict = {"timestamp": timestamp, "from": sender, "to": device,
-                        "message": text}
+        message_dict = {"timestamp": timestamp, "from": sender, "to": device, "message": text}
 
         # Add message to this panel's "all direct messages" buffer
         if device not in shared.direct_messages:
             shared.direct_messages[device] = []
         shared.direct_messages[device].append(message_dict)
         if device == self.selected_device:
-            self.messages.SetObjects(shared.direct_messages[device])
+            self.messages.SetObjects(shared.direct_messages[device], preserveSelection=True)
 
         # Add message to the shared node_conversations buffer
         if device not in shared.node_conversations:
             shared.node_conversations[device] = {}
         if sender not in shared.node_conversations[device]:
             shared.node_conversations[device][sender] = []
-        shared.node_conversations[device][sender].append(shared_message_dict)
+        shared.node_conversations[device][sender].append(message_dict)
 
         # Tell child windows to update themselves
         for child in self.active_subpanels:
