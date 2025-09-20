@@ -36,7 +36,6 @@ class DirectMessagesPanel(wx.Panel):
         message_button_box.Add(self.convo_button)
         sizer.Add(message_button_box, 0)
 
-        # TODO: Change sender column to To and From columns
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
             ColumnDefn("Timestamp", "left", 150, "timestamp", isEditable=False),
