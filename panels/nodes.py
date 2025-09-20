@@ -1,6 +1,9 @@
 import wx
 
-from gui_events import EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED
+import shared
+from gui_events import (EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED, EVT_CHILD_CLOSED,
+                        EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel)
+from panels.node_convo_frame import NodeConvoFrame
 
 
 class NodesPanel(wx.Panel):
@@ -29,6 +32,11 @@ class NodesPanel(wx.Panel):
         sizer.Add(node_list_label, 0, flag=wx.LEFT)
         sizer.Add(self.node_list, 1, flag=wx.EXPAND)
 
+        self.convo_button = wx.Button(self, wx.ID_ANY, "Show direct message conversation")
+        self.convo_button.Disable()
+        self.Bind(wx.EVT_BUTTON, self.onConvoButton, self.convo_button)
+        sizer.Add(self.convo_button, 0)
+
         self.node_info_placeholder = wx.StaticText(self, wx.ID_ANY, "Node info goes here, grid sizer?")
         sizer.Add(self.node_info_placeholder, 0, flag=wx.EXPAND)
 
@@ -39,10 +47,13 @@ class NodesPanel(wx.Panel):
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
         self.Bind(EVT_NODE_UPDATED, self.receive_node_event)
+        self.Bind(EVT_CHILD_CLOSED, self.child_closed_event)
+        self.Bind(EVT_PROCESS_RECEIVED_MESSAGE, self.receive_message_event)
 
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.selected_node = None  # Ditto for node last selected
         self.interfaces = {}  # key = shortname, value is an interface object
+        self.active_subpanels = []  # List of active node conversation frames that will get refreshed on new messages
 
     # === wxPython events
 
@@ -65,10 +76,28 @@ class NodesPanel(wx.Panel):
     def onNodeSelected(self, evt):
         self.selected_node = evt.GetIndex()
         self.node_info_placeholder.SetLabel(f"Node info for {self.selected_node}")
+        self.convo_button.Enable()
 
     # noinspection PyUnusedLocal
     def onNodeDeselected(self, evt):
         self.node_info_placeholder.SetLabel(f"Cleared node info for {self.selected_node}")
+        self.convo_button.Disable()
+
+    # noinspection PyUnusedLocal
+    def onConvoButton(self, evt):
+        selected_node = self.node_list.GetFirstSelected()
+        node_id = self.node_list.GetItemText(selected_node, 0)
+        node_name = self.node_list.GetItemText(selected_node, 1)
+
+        # Make sure the per-node message buffer is populated enough for the conversation frame to work
+        if self.selected_device not in shared.node_conversations:
+            shared.node_conversations[self.selected_device] = {}
+        if node_name not in shared.node_conversations[self.selected_device]:
+            shared.node_conversations[self.selected_device][node_name] = []
+
+        node_convo_frame = NodeConvoFrame(self, self.interfaces[self.selected_device], node_name, node_id)
+        self.active_subpanels.append(node_convo_frame)
+        node_convo_frame.Show(True)
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
@@ -123,3 +152,12 @@ class NodesPanel(wx.Panel):
                 self.node_list.Select(matching_list_item, 1)
 
         return
+
+    # noinspection PyUnusedLocal
+    def receive_message_event(self, event):
+        # direct_messages panel will handle updating the shared message buffer, just tell children to refresh
+        for child in self.active_subpanels:
+            wx.PostEvent(child, refresh_panel())
+
+    def child_closed_event(self, event):
+        pass  # Nothing in particular to do that

@@ -114,6 +114,9 @@ class MainFrame(wx.Frame):
             wx.PostEvent(self.dm_panel, process_received_message(device=my_shortname, channel=channel,
                                                                   sender=from_shortname, timestamp=now,
                                                                   message=text_message))
+            wx.PostEvent(self.node_panel, process_received_message(device=my_shortname, channel=channel,
+                                                                 sender=from_shortname, timestamp=now,
+                                                                 message=text_message))
         elif to_id == "^all":
             wx.PostEvent(self.chm_panel, process_received_message(device=my_shortname, channel=channel,
                                                                   sender=from_shortname, timestamp=now,
