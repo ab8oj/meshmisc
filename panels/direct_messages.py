@@ -3,7 +3,8 @@ from datetime import datetime
 from ObjectListView3 import ObjectListView, ColumnDefn
 
 import shared
-from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_CHILD_CLOSED, refresh_panel
+from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_CHILD_CLOSED, refresh_panel, \
+    refresh_specific_panel
 from panels.node_convo_frame import NodeConvoFrame
 
 
@@ -103,6 +104,7 @@ class DirectMessagesPanel(wx.Panel):
         shared.node_conversations[self.selected_device][selected_sender].append(message_dict)
         for child in self.active_subpanels:
             wx.PostEvent(child, refresh_panel())
+        wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="node"))
 
     # noinspection PyUnusedLocal
     def onConvoButton(self, evt):
@@ -116,7 +118,8 @@ class DirectMessagesPanel(wx.Panel):
             wx.RichMessageDialog(self, f"Sender {selected_sender} not found in device node list, cannot send message",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
-        node_convo_frame = NodeConvoFrame(self, self.interfaces[self.selected_device], selected_sender, sender_node_id)
+        node_convo_frame = NodeConvoFrame(self, self.GetTopLevelParent(),
+                                          self.interfaces[self.selected_device], selected_sender, sender_node_id)
         self.active_subpanels.append(node_convo_frame)
         node_convo_frame.Show(True)
 
@@ -133,6 +136,8 @@ class DirectMessagesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
         self.messages.SetObjects(shared.direct_messages[self.selected_device], preserveSelection=True)
+        for child in self.active_subpanels:
+            wx.PostEvent(child, refresh_panel())
 
     def add_device_event(self, evt):
         device_name = evt.name

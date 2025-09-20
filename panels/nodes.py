@@ -95,13 +95,16 @@ class NodesPanel(wx.Panel):
         if node_name not in shared.node_conversations[self.selected_device]:
             shared.node_conversations[self.selected_device][node_name] = []
 
-        node_convo_frame = NodeConvoFrame(self, self.interfaces[self.selected_device], node_name, node_id)
+        node_convo_frame = NodeConvoFrame(self, self.GetTopLevelParent(),
+                                          self.interfaces[self.selected_device], node_name, node_id)
         self.active_subpanels.append(node_convo_frame)
         node_convo_frame.Show(True)
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
         self.Layout()
+        for child in self.active_subpanels:
+            wx.PostEvent(child, refresh_panel())
 
     def add_device_event(self, evt):
         device_name = evt.name

@@ -4,12 +4,13 @@ from ObjectListView3 import ObjectListView, ColumnDefn
 from datetime import datetime
 
 import shared
-from gui_events import child_closed, EVT_REFRESH_PANEL, refresh_panel
+from gui_events import child_closed, EVT_REFRESH_PANEL, refresh_panel, refresh_specific_panel
 
 
 class NodeConvoFrame(wx.Frame):
-    def __init__(self, parent, interface, remote_node_name, remote_node_id):
+    def __init__(self, parent, app_frame, interface, remote_node_name, remote_node_id):
         wx.Frame.__init__(self, parent, -1, f"Direct message conversation with {remote_node_name}")
+        self.app_frame = app_frame
         self.interface = interface
         self.remote_node_name = remote_node_name
         self.remote_node_id = remote_node_id
@@ -70,6 +71,8 @@ class NodeConvoFrame(wx.Frame):
 
         shared.direct_messages[self.local_node_name].append(message_dict)
         wx.PostEvent(self.GetParent(), refresh_panel())
+        wx.PostEvent(self.app_frame, refresh_specific_panel(panel_name="dm"))
+        wx.PostEvent(self.app_frame, refresh_specific_panel(panel_name="node"))
 
         return
 
