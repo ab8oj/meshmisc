@@ -119,7 +119,7 @@ class MainFrame(wx.Frame):
             elif packet["fromId"] is None:
                 # We didn't get a fromId in the message, how rude.
                 # TODO: Log this
-                if packet["fromId"].get("viaMqtt", False):
+                if packet.get("viaMqtt", False):
                     from_shortname = "MQTT"
                 else:
                     from_shortname = "----"  # Differentiate this from the fall-thru default case
