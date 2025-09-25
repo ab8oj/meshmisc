@@ -14,6 +14,7 @@ from gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANNOUNC
 
 
 # TODO: Implement logging
+# TODO: Is interface.nodes really a reliable node database? Perhaps it has some gaps
 class MainFrame(wx.Frame):
     def __init__(self, parent):
         # noinspection PyTypeChecker
@@ -114,10 +115,19 @@ class MainFrame(wx.Frame):
 
         if "fromId" in packet:
             if packet["fromId"] in interface.nodes:
-                from_shortname = interface.nodes[packet["fromId"]].get("user", {}).get("shortName", "Unknown")
+                from_shortname = interface.nodes[packet["fromId"]].get("user", {}).get("shortName", "None")
+            elif packet["fromId"] is None:
+                # We didn't get a fromId in the message, how rude.
+                # TODO: Log this
+                if packet["fromId"].get("viaMqtt", False):
+                    from_shortname = "MQTT"
+                else:
+                    from_shortname = "----"  # Differentiate this from the fall-thru default case
             else:
+                # We got a fromId but it's not in the MeshInterface node list
+                # TODO: Log this
                 from_shortname = "????"
-        else:
+        else:  # fromId key is not even in the packat
             from_shortname = "UNK?"
 
         to_id = packet.get("toId", "Unknown ToId")
