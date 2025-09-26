@@ -40,7 +40,6 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menubar)
 
         self.toolbar = self.CreateToolBar(wx.ID_ANY)
-
         plus_icon = wx.ArtProvider.GetBitmap(wx.ART_PLUS, wx.ART_TOOLBAR)
         plus_tool = self.toolbar.AddTool(wx.ID_ANY, "+", wx.BitmapBundle.FromBitmap(plus_icon), "Increase font")
         self.Bind(wx.EVT_MENU, self.onFontIncrease, plus_tool)
@@ -48,6 +47,11 @@ class MainFrame(wx.Frame):
         minus_tool = self.toolbar.AddTool(wx.ID_ANY, "-", wx.BitmapBundle.FromBitmap(minus_icon), "Decrease font")
         self.Bind(wx.EVT_MENU, self.onFontDecrease, minus_tool)
         self.toolbar.Realize()
+
+        accel_table = wx.AcceleratorTable([ (wx.ACCEL_CMD, ord('='), plus_tool.GetId()),
+                                            (wx.ACCEL_CMD, ord('-'), minus_tool.GetId()),
+                                            ])
+        self.SetAcceleratorTable(accel_table)
 
         # === Listbook and panels
         self.lb = wx.Listbook(self, style=wx.LB_LEFT)
