@@ -40,13 +40,14 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menubar)
 
         self.toolbar = self.CreateToolBar(wx.ID_ANY)
-        tb_plus = wx.Button(self.toolbar, wx.ID_ANY, "+")
-        tb_minus = wx.Button(self.toolbar, wx.ID_ANY, "-")
-        self.toolbar.AddControl(tb_plus)
-        self.toolbar.AddControl(tb_minus)
+
+        plus_icon = wx.ArtProvider.GetBitmap(wx.ART_PLUS, wx.ART_TOOLBAR)
+        plus_tool = self.toolbar.AddTool(wx.ID_ANY, "+", wx.BitmapBundle.FromBitmap(plus_icon), "Increase font")
+        self.Bind(wx.EVT_MENU, self.onFontIncrease, plus_tool)
+        minus_icon = wx.ArtProvider.GetBitmap(wx.ART_MINUS, wx.ART_TOOLBAR)
+        minus_tool = self.toolbar.AddTool(wx.ID_ANY, "-", wx.BitmapBundle.FromBitmap(minus_icon), "Decrease font")
+        self.Bind(wx.EVT_MENU, self.onFontDecrease, minus_tool)
         self.toolbar.Realize()
-        self.Bind(wx.EVT_BUTTON, self.onFontIncrease, tb_plus)
-        self.Bind(wx.EVT_BUTTON, self.onFontDecrease, tb_minus)
 
         # === Listbook and panels
         self.lb = wx.Listbook(self, style=wx.LB_LEFT)
@@ -91,8 +92,7 @@ class MainFrame(wx.Frame):
     def onFontIncrease(self, event):
         self._make_all_children_larger(self)
         self.lb.Fit()
-        for panel in self.panel_pointers.values():
-            panel.Fit()
+        self.SendSizeEvent()
 
     def _make_all_children_larger(self, window):
         window.SetFont(window.GetFont().MakeLarger())
@@ -102,8 +102,7 @@ class MainFrame(wx.Frame):
     def onFontDecrease(self, event):
         self._make_all_children_smaller(self)
         self.lb.Fit()
-        for panel in self.panel_pointers.values():
-            panel.Fit()
+        self.SendSizeEvent()
 
     def _make_all_children_smaller(self, window):
         window.SetFont(window.GetFont().MakeSmaller())
