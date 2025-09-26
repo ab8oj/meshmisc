@@ -39,6 +39,15 @@ class MainFrame(wx.Frame):
         menubar.Append(aboutmenu, "About")
         self.SetMenuBar(menubar)
 
+        self.toolbar = self.CreateToolBar(wx.ID_ANY)
+        tb_plus = wx.Button(self.toolbar, wx.ID_ANY, "+")
+        tb_minus = wx.Button(self.toolbar, wx.ID_ANY, "-")
+        self.toolbar.AddControl(tb_plus)
+        self.toolbar.AddControl(tb_minus)
+        self.toolbar.Realize()
+        self.Bind(wx.EVT_BUTTON, self.onFontIncrease, tb_plus)
+        self.Bind(wx.EVT_BUTTON, self.onFontDecrease, tb_minus)
+
         # === Listbook and panels
         self.lb = wx.Listbook(self, style=wx.LB_LEFT)
         self.panel_pointers = {}
@@ -76,6 +85,30 @@ class MainFrame(wx.Frame):
     def onExit(self, event):
         # TODO: Exit confirmation if configured to do so
         self.Close(True)
+
+    # === Toolbar events
+    # *** The fonts increase and decrease, but the layouts don't adjust very well. Fit() helps but more is needed
+    def onFontIncrease(self, event):
+        self._make_all_children_larger(self)
+        self.lb.Fit()
+        for panel in self.panel_pointers.values():
+            panel.Fit()
+
+    def _make_all_children_larger(self, window):
+        window.SetFont(window.GetFont().MakeLarger())
+        for child in window.GetChildren():
+            self._make_all_children_larger(child)
+
+    def onFontDecrease(self, event):
+        self._make_all_children_smaller(self)
+        self.lb.Fit()
+        for panel in self.panel_pointers.values():
+            panel.Fit()
+
+    def _make_all_children_smaller(self, window):
+        window.SetFont(window.GetFont().MakeSmaller())
+        for child in window.GetChildren():
+            self._make_all_children_smaller(child)
 
     # === wxPython events
     def setStatusBar(self, event):
