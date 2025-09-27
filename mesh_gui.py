@@ -1,4 +1,5 @@
 # Meshtastic client GUI
+import csv
 from datetime import datetime
 
 import dotenv
@@ -94,7 +95,8 @@ class MainFrame(wx.Frame):
         self.Close(True)
 
     # === Toolbar events
-    # *** The fonts increase and decrease, but the layouts don't adjust very well. Fit() helps but more is needed
+
+    # noinspection PyUnusedLocal
     def onFontIncrease(self, event):
         self._make_all_children_larger(self)
         self.lb.Fit()
@@ -105,6 +107,7 @@ class MainFrame(wx.Frame):
         for child in window.GetChildren():
             self._make_all_children_larger(child)
 
+    # noinspection PyUnusedLocal
     def onFontDecrease(self, event):
         self._make_all_children_smaller(self)
         self.lb.Fit()
@@ -145,7 +148,7 @@ class MainFrame(wx.Frame):
         my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")
 
         if "raw" in packet and hasattr(packet["raw"], "channel"):
-            channel = packet["raw"].channel
+            channel = str(packet["raw"].channel)
         else:
             channel = "Unknown"
 
@@ -189,10 +192,31 @@ class MainFrame(wx.Frame):
         wx.PostEvent(self.panel_pointers["node"], node_updated(node=node, interface=interface))
         return
 
+def _load_channel_message_log():
+    try:
+        lf = open(shared.config.get("CHANNEL_MESSAGE_LOG", "channel-messages.csv"), "r")
+    except FileNotFoundError:
+        return  # Silently ignore no log file found yet
+
+    with lf:
+        reader = csv.DictReader(lf, fieldnames=["device", "channel", "timestamp", "sender", "message"])
+        for row in reader:
+            device = row["device"]
+            channel = row["channel"]
+            timestamp = row["timestamp"]
+            sender = row["sender"]
+            message = row["message"]
+            if device not in shared.channel_messages:
+                shared.channel_messages[device] = {}
+            if channel not in shared.channel_messages[device]:
+                shared.channel_messages[device][channel] = []
+            shared.channel_messages[device][channel].append({"timestamp": timestamp, "sender": sender,
+                                                         "message":message})
 
 def main():
     shared.dotenv_file = dotenv.find_dotenv()
     shared.config = {key: value for key, value in dotenv.dotenv_values(".env").items()}
+    _load_channel_message_log()
     client_app = wx.App(False)  # Do not redirect stdin.stdout to a window yet
     MainFrame(None)
     client_app.MainLoop()

@@ -28,3 +28,15 @@ Simpler buffer for all direct messages regardless of node.
     ]
 }
 """
+channel_messages = {}
+"""
+channel_messages[devicename][channel] is a list of messages: 
+{devicename:
+    {channel number:[           
+        {"Timestamp": timestamp,
+         "Sender": sender,
+         "Message": message}
+        ]
+    }
+}
+"""

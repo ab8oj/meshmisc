@@ -63,18 +63,6 @@ class ChannelMessagesPanel(wx.Panel):
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.selected_channel = None  # Ditto for channel last selected
         self.interfaces = {}  # key = shortname, value is an interface object
-        self.message_buffer = {}
-        """
-        message_buffer[devicename][channel] is a list of messages: 
-        {devicename:
-            {channel number:[           
-                {"Timestamp": timestamp,
-                 "Sender": sender,
-                 "Message": message}
-                ]
-            }
-        }
-        """
 
     # === wxPython events
 
@@ -97,10 +85,14 @@ class ChannelMessagesPanel(wx.Panel):
     def onChannelSelected(self, evt):
         # TODO: un-highlight the channel when selected
         # It seems like this could fire before the first device selection event
-        self.selected_channel = evt.GetIndex()
-        if self.selected_channel not in self.message_buffer[self.selected_device]:
-            self.message_buffer[self.selected_device][self.selected_channel] = []
-        self.messages.SetObjects(self.message_buffer[self.selected_device][self.selected_channel])
+        selected_index = evt.GetIndex()
+        if selected_index == -1:
+            self.selected_channel = None
+        else:
+            self.selected_channel = str(self.msg_channel_list.GetItemText(selected_index, 0))
+        if self.selected_channel not in shared.channel_messages[self.selected_device]:
+            shared.channel_messages[self.selected_device][self.selected_channel] = []
+        self.messages.SetObjects(shared.channel_messages[self.selected_device][self.selected_channel])
 
     # noinspection PyUnusedLocal
     def onChannelDeselected(self, evt):
@@ -120,7 +112,7 @@ class ChannelMessagesPanel(wx.Panel):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        if self.selected_channel is None or self.selected_channel == -1:
+        if self.selected_channel is None:
             wx.RichMessageDialog(self, "No channel selected",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
@@ -128,10 +120,11 @@ class ChannelMessagesPanel(wx.Panel):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message_dict = {"timestamp": now, "sender": self.selected_device, "message": text_to_send}
 
-        channel_index = int(self.msg_channel_list.GetItemText(self.selected_channel, 0))
+        # TODO: Trap integer conversion errors here in case there's a bad log file entry
+        channel_index = int(self.selected_channel)
         self.interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
-        self.message_buffer[self.selected_device][self.selected_channel].append(message_dict)
-        self.messages.SetObjects(self.message_buffer[self.selected_device][self.selected_channel])
+        shared.channel_messages[self.selected_device][self.selected_channel].append(message_dict)
+        self.messages.SetObjects(shared.channel_messages[self.selected_device][self.selected_channel])
         self.send_text.Clear()
 
         log_dict = {"device": self.selected_device, "channel": channel_index,
@@ -156,13 +149,13 @@ class ChannelMessagesPanel(wx.Panel):
         if self.msg_device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
             self.msg_device_picker.Select(0)
-        if device_name not in self.message_buffer:
-            self.message_buffer[device_name] = {}
+        if device_name not in shared.channel_messages:
+            shared.channel_messages[device_name] = {}
 
         # Add the channels to the message buffer
         for chan in channel_list:
-            if chan.index not in self.message_buffer[device_name]:
-                self.message_buffer[device_name][chan.index] = []
+            if chan.index not in shared.channel_messages[device_name]:
+                shared.channel_messages[device_name][chan.index] = []
 
         # Populate the channel list
         for chan in channel_list:
@@ -177,17 +170,19 @@ class ChannelMessagesPanel(wx.Panel):
         sender = event.sender
         timestamp = event.timestamp
         text = event.message
-        if device not in self.message_buffer:
-            self.message_buffer[device] = {}
-        if channel not in self.message_buffer[device]:
-            self.message_buffer[device][channel] = []
+        if device not in shared.channel_messages:
+            shared.channel_messages[device] = {}
+        if channel not in shared.channel_messages[device]:
+            shared.channel_messages[device][channel] = []
         message_dict = {"timestamp": timestamp, "sender": sender, "message": text}
-        self.message_buffer[device][channel].append(message_dict)
+        shared.channel_messages[device][channel].append(message_dict)
         if device == self.selected_device and channel == self.selected_channel:
-            self.messages.SetObjects(self.message_buffer[device][channel])
+            self.messages.SetObjects(shared.channel_messages[device][channel])
 
         log_dict = {"device": device, "channel": channel, "timestamp": timestamp, "sender": sender, "message": text}
         self._log_message(log_dict)
+
+    # === Helpers and private functions
 
     @staticmethod
     def _log_message(message_dict):
