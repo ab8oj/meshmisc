@@ -1,3 +1,4 @@
+import csv
 import wx
 from datetime import datetime
 from ObjectListView3 import ObjectListView, ColumnDefn
@@ -105,6 +106,10 @@ class DirectMessagesPanel(wx.Panel):
             wx.PostEvent(child, refresh_panel())
         wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="node"))
 
+        log_dict = {"device": self.selected_device, "remote": selected_sender, "timestamp": now,
+                       "from": self.selected_device, "to": selected_sender, "message": text_to_send}
+        self._log_message(log_dict)
+
     # noinspection PyUnusedLocal
     def onConvoButton(self, evt):
         selected_item = self.messages.GetFirstSelected()
@@ -179,7 +184,18 @@ class DirectMessagesPanel(wx.Panel):
         for child in self.active_subpanels:
             wx.PostEvent(child, refresh_panel())
 
+        # Log the message
+        log_dict = {"device": device, "remote": sender, "timestamp": timestamp,
+                       "from": sender, "to": device, "message": text}
+        self._log_message(log_dict)
+
     def child_closed_event(self, event):
         child = event.child
         if child in self.active_subpanels:
             self.active_subpanels.remove(child)
+
+    @staticmethod
+    def _log_message(message_dict):
+        with (open(shared.config.get("DIRECT_MESSAGE_LOG", "direct-messages.csv"), "a") as lf):
+            csv.DictWriter(lf, fieldnames=["device", "remote", "timestamp", "from", "to", "message"]
+                           ).writerow(message_dict)

@@ -1,5 +1,8 @@
 # Data shared between different parts of the GUI app
 
+dotenv_file = ""
+config = {}
+
 node_conversations = {}
 """
 Direct messages grouped by remote node shortname. Either "from" or "to" can be the remote

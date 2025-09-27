@@ -26,7 +26,7 @@ class AppConfigPanel(wx.Panel):
         outer_box.Add(button_box, 0, wx.CENTER)
 
         # TODO: Email validator for email properties (see bottom of dev doc for snippets)
-        # TODO: self.dotenv_file = dotenv.find_dotenv() to find .env file
+        # TODO: Make use of the shared.config dict, and make sure it is consistent with actual .env
 
         self.pg = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         self.reload_env(self.pg)

@@ -1,9 +1,11 @@
 # Meshtastic client GUI
 from datetime import datetime
 
+import dotenv
 import wx
 from pubsub import pub
 
+import shared
 from panels.app_config import AppConfigPanel
 from panels.devices import DevicesPanel
 from panels.nodes import NodesPanel
@@ -189,6 +191,8 @@ class MainFrame(wx.Frame):
 
 
 def main():
+    shared.dotenv_file = dotenv.find_dotenv()
+    shared.config = {key: value for key, value in dotenv.dotenv_values(".env").items()}
     client_app = wx.App(False)  # Do not redirect stdin.stdout to a window yet
     MainFrame(None)
     client_app.MainLoop()

@@ -1,4 +1,5 @@
 # "Conversation view" of direct messages between a local local_node_name and a remote node
+import csv
 import wx
 from ObjectListView3 import ObjectListView, ColumnDefn
 from datetime import datetime
@@ -64,7 +65,8 @@ class NodeConvoFrame(wx.Frame):
         self.send_text.Clear()
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        message_dict = {"timestamp": now, "from": self.local_node_name, "to": self.remote_node_name, "message": text_to_send}
+        message_dict = {"timestamp": now, "from": self.local_node_name, "to": self.remote_node_name,
+                        "message": text_to_send}
         shared.node_conversations[self.local_node_name][self.remote_node_name].append(message_dict)
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
                                  preserveSelection=True)
@@ -74,7 +76,17 @@ class NodeConvoFrame(wx.Frame):
         wx.PostEvent(self.app_frame, refresh_specific_panel(panel_name="dm"))
         wx.PostEvent(self.app_frame, refresh_specific_panel(panel_name="node"))
 
+        log_dict = {"device": self.local_node_name, "remote": self.remote_node_name, "timestamp": now,
+                       "from": self.local_node_name, "to": self.remote_node_name, "message": text_to_send}
+        self._log_message(log_dict)
+
         return
+
+    @staticmethod
+    def _log_message(message_dict):
+        with (open(shared.config.get("DIRECT_MESSAGE_LOG", "direct-messages.csv"), "a") as lf):
+            csv.DictWriter(lf, fieldnames=["device", "remote", "timestamp", "from", "to", "message"]
+                           ).writerow(message_dict)
 
     # noinspection PyUnusedLocal
     def closeEvent(self, event):

@@ -29,6 +29,8 @@ Access to Meshtastic devices and external systems
 # .env contents
 APP_LOG_NAME=msg_forward.log  
 MSG_LOG_NAME=messages.log  
+CHANNEL_MESSAGE_LOG=channel-messages.log  
+DIRECT_MESSAGE_LOG=direct-messages.log  
 SMTP_SERVER=<smtp server address>  
 SMTP_SENDER=<smtp server username>  
 SMTP_PASSWORD=<smtp server password>   

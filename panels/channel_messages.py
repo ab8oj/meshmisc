@@ -1,8 +1,10 @@
+import csv
 from datetime import datetime
 
 import wx
 from ObjectListView3 import ObjectListView, ColumnDefn
 
+import shared
 from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE
 
 class ChannelMessagesPanel(wx.Panel):
@@ -124,12 +126,17 @@ class ChannelMessagesPanel(wx.Panel):
             return
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message_dict = {"timestamp": now, "sender": self.selected_device, "message": text_to_send}
+
         channel_index = int(self.msg_channel_list.GetItemText(self.selected_channel, 0))
         self.interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
-        self.message_buffer[self.selected_device][self.selected_channel].append(
-            {"timestamp": now, "sender": self.selected_device, "message": text_to_send})
+        self.message_buffer[self.selected_device][self.selected_channel].append(message_dict)
         self.messages.SetObjects(self.message_buffer[self.selected_device][self.selected_channel])
         self.send_text.Clear()
+
+        log_dict = {"device": self.selected_device, "channel": channel_index,
+                    "timestamp": now, "sender": self.selected_device, "message": text_to_send}
+        self._log_message(log_dict)
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
@@ -178,3 +185,12 @@ class ChannelMessagesPanel(wx.Panel):
         self.message_buffer[device][channel].append(message_dict)
         if device == self.selected_device and channel == self.selected_channel:
             self.messages.SetObjects(self.message_buffer[device][channel])
+
+        log_dict = {"device": device, "channel": channel, "timestamp": timestamp, "sender": sender, "message": text}
+        self._log_message(log_dict)
+
+    @staticmethod
+    def _log_message(message_dict):
+        with (open(shared.config.get("CHANNEL_MESSAGE_LOG", "channel-messages.csv"), "a") as lf):
+            csv.DictWriter(lf, fieldnames=["device", "channel", "timestamp", "sender", "message"]
+                           ).writerow(message_dict)
