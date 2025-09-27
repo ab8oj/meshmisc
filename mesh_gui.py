@@ -213,10 +213,37 @@ def _load_channel_message_log():
             shared.channel_messages[device][channel].append({"timestamp": timestamp, "sender": sender,
                                                          "message":message})
 
+def _load_direct_message_log():
+    try:
+        lf = open(shared.config.get("DIRECT_MESSAGE_LOG", "direct-messages.csv"), "r")
+    except FileNotFoundError:
+        return  # Silently ignore no log file found yet
+
+    with lf:
+        reader = csv.DictReader(lf, fieldnames=["device", "remote", "timestamp", "from", "to", "message"])
+        for row in reader:
+            device = row["device"]
+            remote = row["remote"]
+            timestamp = row["timestamp"]
+            from_shortname = row["from"]
+            to_shortname = row["to"]
+            message = row["message"]
+            if device not in shared.direct_messages:
+                shared.direct_messages[device] = []
+            if device not in shared.node_conversations:
+                shared.node_conversations[device] = {}
+            if remote not in shared.node_conversations[device]:
+                shared.node_conversations[device][remote] = []
+            shared.direct_messages[device].append({"timestamp": timestamp, "from": from_shortname,
+                                                         "to": to_shortname, "message":message})
+            shared.node_conversations[device][remote].append({"timestamp": timestamp, "from": from_shortname,
+                                                   "to": to_shortname, "message": message})
+
 def main():
     shared.dotenv_file = dotenv.find_dotenv()
     shared.config = {key: value for key, value in dotenv.dotenv_values(".env").items()}
     _load_channel_message_log()
+    _load_direct_message_log()
     client_app = wx.App(False)  # Do not redirect stdin.stdout to a window yet
     MainFrame(None)
     client_app.MainLoop()

@@ -74,6 +74,7 @@ class DirectMessagesPanel(wx.Panel):
     def onDevicePickerChoice(self, evt):
         # Note that this also fires when the first item is added
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
+        self.messages.SetObjects(shared.direct_messages[self.selected_device])
 
     # noinspection PyUnusedLocal
     def onQuickMsgButton(self, evt):
@@ -88,7 +89,8 @@ class DirectMessagesPanel(wx.Panel):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        text_prompt = wx.TextEntryDialog(self, "Text to send", "caption", "", style=wx.OK | wx.CANCEL)
+        text_prompt = wx.TextEntryDialog(self, "Text to send", f"Direct message to {selected_sender}", "",
+                                         style=wx.OK | wx.CANCEL)
         text_prompt.ShowModal()
         text_to_send = text_prompt.GetValue()
         if text_to_send.strip() == "":  # No text entered or cancel was selected

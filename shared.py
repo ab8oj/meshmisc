@@ -23,7 +23,8 @@ direct_messages = {}
 Simpler buffer for all direct messages regardless of node. 
 {devicename:[           
     {"Timestamp": timestamp,
-     "Sender": sender,
+     "From": from,
+     "To": to,
      "Message": message}
     ]
 }
