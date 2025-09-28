@@ -62,7 +62,6 @@ class ChannelMessagesPanel(wx.Panel):
 
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.selected_channel = None  # Ditto for channel last selected
-        self.interfaces = {}  # key = shortname, value is an interface object
 
     # === wxPython events
 
@@ -77,7 +76,7 @@ class ChannelMessagesPanel(wx.Panel):
         if selected_channel != -1:
             self.msg_channel_list.Select(selected_channel, 0)
         self.msg_channel_list.DeleteAllItems()
-        channel_list = self.interfaces[self.selected_device].localNode.channels
+        channel_list = shared.connected_interfaces[self.selected_device].localNode.channels
         for chan in channel_list:
             if chan.role != 0:
                 self.msg_channel_list.Append((chan.index, chan.settings.name))
@@ -122,7 +121,7 @@ class ChannelMessagesPanel(wx.Panel):
 
         # TODO: Trap integer conversion errors here in case there's a bad log file entry
         channel_index = int(self.selected_channel)
-        self.interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
+        shared.connected_interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
         shared.channel_messages[self.selected_device][self.selected_channel].append(message_dict)
         self.messages.SetObjects(shared.channel_messages[self.selected_device][self.selected_channel])
         self.send_text.Clear()
@@ -139,10 +138,6 @@ class ChannelMessagesPanel(wx.Panel):
         device_name = evt.name
         interface = evt.interface
         channel_list = interface.localNode.channels
-
-        # Store the interface object in this panel's list of interfaces
-        if device_name not in self.interfaces:
-            self.interfaces[device_name] = interface
 
         # Add the new device to the device picker and message buffer
         self.msg_device_picker.Append(device_name)

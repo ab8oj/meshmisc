@@ -1,6 +1,7 @@
 import wx
 from pubsub import pub
 
+import shared
 from mesh_managers import DeviceManager
 from gui_events import (set_status_bar, EVT_REFRESH_PANEL,
                         update_connection_status, EVT_UPDATE_CONNECTION_STATUS, announce_new_device)
@@ -63,7 +64,6 @@ class DevicesPanel(wx.Panel):
         # Non-GUI stuff
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
-        self.connected_interfaces = {}  # key = device shortname, value = MeshInterface object for that device
 
     # === wxPython events
 
@@ -140,7 +140,7 @@ class DevicesPanel(wx.Panel):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
         try:
-            self.connected_interfaces[name] = self.device_manager.connect_to_specific_device(dev_type, address)
+            shared.connected_interfaces[name] = self.device_manager.connect_to_specific_device(dev_type, address)
         except Exception as e:
             wx.RichMessageDialog(self, f"Error connecting to device: {str(e)}",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
@@ -163,14 +163,14 @@ class DevicesPanel(wx.Panel):
                                        "force-quit the application if the disconnect hangs",
                                  style=wx.ICON_WARNING | wx.OK).ShowModal()
         try:
-            self.connected_interfaces[name].close()
+            shared.connected_interfaces[name].close()
         except Exception as e:
             wx.RichMessageDialog(self, f"Error disconnecting from device: {str(e)}",)
             return
 
         # Remove the old interface object but don't close the associated windows. If a reconnect happens, the
         # key (name) will still be the same, so all the windows will still match up with the new object
-        self.connected_interfaces.pop(name, None)
+        shared.connected_interfaces.pop(name, None)
         return
 
     # noinspection PyUnusedLocal
@@ -192,6 +192,7 @@ class DevicesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onConnectionUp(self, interface):
         short_name = interface.getShortName()
+        shared.connected_interfaces[short_name] = interface
         wx.PostEvent(self, update_connection_status(name=short_name, status="Connected"))
         wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection established to {short_name}"))
         wx.PostEvent(self.GetTopLevelParent(), announce_new_device(name=short_name, interface=interface))
@@ -199,6 +200,7 @@ class DevicesPanel(wx.Panel):
 
     def onConnectionDown(self, interface):
         # TODO: Turning off a BLE device doesn't seem to publish to this topic. Why?
+        # NOTE: Don't remove the interface object, so we can still reference things in it
         short_name = interface.getShortName()
         wx.PostEvent(self, update_connection_status(name=short_name, status="Disconnected"))
         wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection lost to {short_name}"))

@@ -52,7 +52,6 @@ class NodesPanel(wx.Panel):
 
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.selected_node = None  # Ditto for node last selected
-        self.interfaces = {}  # key = shortname, value is an interface object
         self.active_subpanels = []  # List of active node conversation frames that will get refreshed on new messages
 
     # === wxPython events
@@ -67,7 +66,7 @@ class NodesPanel(wx.Panel):
         if selected_node != -1:
             self.node_list.Select(selected_node, 0)
         self.node_list.DeleteAllItems()
-        node_dict = self.interfaces[self.selected_device].nodes
+        node_dict = shared.connected_interfaces[self.selected_device].nodes
         for node in node_dict:
             # TODO: change to using .get() for key error avoidance
             self.node_list.Append((node, node_dict[node]["user"]["shortName"],
@@ -96,7 +95,7 @@ class NodesPanel(wx.Panel):
             shared.node_conversations[self.selected_device][node_name] = []
 
         node_convo_frame = NodeConvoFrame(self, self.GetTopLevelParent(),
-                                          self.interfaces[self.selected_device], node_name, node_id)
+                                          shared.connected_interfaces[self.selected_device], node_name, node_id)
         self.active_subpanels.append(node_convo_frame)
         node_convo_frame.Show(True)
 
@@ -110,10 +109,6 @@ class NodesPanel(wx.Panel):
         device_name = evt.name
         interface = evt.interface
         node_dict = interface.nodes
-
-        # Store the interface object in this panel's list of interfaces
-        if device_name not in self.interfaces:
-            self.interfaces[device_name] = interface
 
         # Add the new device to the device picker
         self.msg_device_picker.Append(device_name)

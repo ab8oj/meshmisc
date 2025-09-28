@@ -60,11 +60,10 @@ class DirectMessagesPanel(wx.Panel):
 
         self.active_subpanels = []  # List of active node conversation frames that will get refreshed on new messages
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
-        self.interfaces = {}  # key = shortname, value is an interface object
 
     def _find_nodeid_from_shortname(self, shortname):
         # Brute force for now: shuffle through the interface's node list looking for the shortname
-        for node, node_info in self.interfaces[self.selected_device].nodes.items():
+        for node, node_info in shared.connected_interfaces[self.selected_device].nodes.items():
             if node_info["user"]["shortName"] == shortname:
                 return node
         return None
@@ -96,7 +95,7 @@ class DirectMessagesPanel(wx.Panel):
         if text_to_send.strip() == "":  # No text entered or cancel was selected
             return
 
-        self.interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id)
+        shared.connected_interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id)
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message_dict = {"timestamp": now, "from": self.selected_device, "to": selected_sender,
@@ -125,7 +124,7 @@ class DirectMessagesPanel(wx.Panel):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
         node_convo_frame = NodeConvoFrame(self, self.GetTopLevelParent(),
-                                          self.interfaces[self.selected_device], selected_sender, sender_node_id)
+                                          shared.connected_interfaces[self.selected_device], selected_sender, sender_node_id)
         self.active_subpanels.append(node_convo_frame)
         node_convo_frame.Show(True)
 
@@ -147,11 +146,6 @@ class DirectMessagesPanel(wx.Panel):
 
     def add_device_event(self, evt):
         device_name = evt.name
-        interface = evt.interface
-
-        # Store the interface object in this panel's list of interfaces
-        if device_name not in self.interfaces:
-            self.interfaces[device_name] = interface
 
         # Add the new device to the device picker and message buffer
         self.msg_device_picker.Append(device_name)
