@@ -240,13 +240,24 @@ def _load_direct_message_log():
                                                    "to": to_shortname, "message": message})
 
 def main():
+    """
+    Load environment configuration (usually named .env in the app directory)
+    By default, dotenv would load values into an OrderedDict, but SetPropertyValues() cannot handle those.
+    Instead, load environment config file into a plain dict instead. Starting with Python 3.7,
+    plain dicts retain insertion order, so this will maintain environment file order.
+    """
     shared.dotenv_file = dotenv.find_dotenv()
     shared.config = {key: value for key, value in dotenv.dotenv_values(".env").items()}
+
+    # Load saved message logs into the message buffers
     _load_channel_message_log()
     _load_direct_message_log()
+
+    # Fire up the app
     client_app = wx.App(False)  # Do not redirect stdin.stdout to a window yet
     MainFrame(None)
     client_app.MainLoop()
+
     # TODO: disconnect from any connected devices
     client_app.Destroy()
     # TODO: other cleanup here

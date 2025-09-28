@@ -4,6 +4,7 @@ from dotenv import dotenv_values, set_key
 import pathlib
 import shutil
 
+import shared
 from gui_events import set_status_bar
 
 class AppConfigPanel(wx.Panel):
@@ -26,10 +27,9 @@ class AppConfigPanel(wx.Panel):
         outer_box.Add(button_box, 0, wx.CENTER)
 
         # TODO: Email validator for email properties (see bottom of dev doc for snippets)
-        # TODO: Make use of the shared.config dict, and make sure it is consistent with actual .env
 
         self.pg = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
-        self.reload_env(self.pg)
+        self.pg.SetPropertyValues(shared.config, autofill=True)
         outer_box.Add(self.pg, 1, wx.EXPAND)
 
         self.SetSizer(outer_box)
@@ -37,31 +37,28 @@ class AppConfigPanel(wx.Panel):
         outer_box.Fit(self)
 
     @staticmethod
-    def reload_env(property_grid):
-        """
-        Reload .env into a property grid
-        SetPropertyValues cannot handle OrderedDicts so we have to convert it to a plain dict
-        Dicts now remember insertion order (Python 3.7+), so this conversion preserves key order
-        """
-        real_dict = {key: value for key, value in dotenv_values(".env").items()}
-        property_grid.SetPropertyValues(real_dict, autofill=True)
+    def _reload_env(property_grid):
+        # See note in mesh_gui.py about why shared.config is loaded this way
+        shared.config = {key: value for key, value in dotenv_values(shared.dotenv_file).items()}
+        property_grid.SetPropertyValues(shared.config, autofill=True)
         property_grid.ClearModifiedStatus()
         return
 
     # noinspection PyUnusedLocal
     def onReloadButton(self, event):
-        confirm = wx.RichMessageDialog(self, "Are you sure you want to reload .env?",
+        confirm = wx.RichMessageDialog(self, "Are you sure you want to reload configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
-            self.reload_env(self.pg)
-            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=".env reloaded"))
+            self._reload_env(self.pg)
+            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="Configuration reloaded"))
 
     # noinspection PyUnusedLocal
     def onSaveButton(self, event):
         # TODO: Add error checking, especially for set_key
-        # Save a backup copy of .env
-        pathlib.Path(".env.bak").unlink(missing_ok=True)
-        shutil.copy(pathlib.Path(".env"), pathlib.Path(".env.bak"))
+        # Save a backup copy of config file
+        backup_env_name = f"{shared.dotenv_file}.bak"
+        pathlib.Path(backup_env_name).unlink(missing_ok=True)
+        shutil.copy(pathlib.Path(shared.dotenv_file), pathlib.Path(backup_env_name))
 
         # Sadly we have to iterate through all properties to find those that have changed
         changed_keys = []
@@ -71,7 +68,7 @@ class AppConfigPanel(wx.Panel):
             if self.pg.IsPropertyModified(prop):
                 prop_name = prop.GetName()
                 prop_value = prop.GetValue()
-                set_key(".env", prop_name, prop_value)
+                set_key(shared.dotenv_file, prop_name, prop_value)
                 changed_keys.append(prop_name)
             iterator.Next()
 
