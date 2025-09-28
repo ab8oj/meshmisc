@@ -193,5 +193,5 @@ class DirectMessagesPanel(wx.Panel):
     @staticmethod
     def _log_message(message_dict):
         with (open(shared.config.get("DIRECT_MESSAGE_LOG", "direct-messages.csv"), "a") as lf):
-            csv.DictWriter(lf, fieldnames=["device", "remote", "timestamp", "from", "to", "message"]
-                           ).writerow(message_dict)
+            csv.DictWriter(lf, fieldnames=["device", "remote", "timestamp", "from", "to", "message"],
+                           quoting=csv.QUOTE_ALL).writerow(message_dict)
