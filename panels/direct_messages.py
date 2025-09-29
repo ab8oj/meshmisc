@@ -71,7 +71,6 @@ class DirectMessagesPanel(wx.Panel):
     # === wxPython events
 
     def onDevicePickerChoice(self, evt):
-        # Note that this also fires when the first item is added
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
         self.messages.SetObjects(shared.direct_messages[self.selected_device])
 
@@ -147,13 +146,14 @@ class DirectMessagesPanel(wx.Panel):
     def add_device_event(self, evt):
         device_name = evt.name
 
-        # Add the new device to the device picker and message buffer
+        # Add the new device to the message buffer and device picker
+        if device_name not in shared.direct_messages:
+            shared.direct_messages[device_name] = []
         self.msg_device_picker.Append(device_name)
         if self.msg_device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
             self.msg_device_picker.Select(0)
-        if device_name not in shared.direct_messages:
-            shared.direct_messages[device_name] = []
+            self.messages.SetObjects(shared.direct_messages[device_name])
 
     def receive_message_event(self, event):
         device = event.device
