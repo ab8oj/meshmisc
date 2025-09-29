@@ -67,7 +67,6 @@ class ChannelMessagesPanel(wx.Panel):
 
     def onDevicePickerChoice(self, evt):
         # TODO: How to handle channels with still-unread messages
-        # Note that this also fires when the first item is added
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
 
         # Repopulate the channel list with the new device's channels
