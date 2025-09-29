@@ -103,7 +103,14 @@ class MainFrame(wx.Frame):
         self.SendSizeEvent()
 
     def _make_all_children_larger(self, window):
-        window.SetFont(window.GetFont().MakeLarger())
+        # Preserve wx.Choice selection across font change
+        if isinstance(window, wx.Choice):
+            choice_selection = window.GetSelection()
+            window.SetFont(window.GetFont().MakeLarger())
+            window.SetSelection(choice_selection)
+        else:
+            window.SetFont(window.GetFont().MakeLarger())
+
         for child in window.GetChildren():
             self._make_all_children_larger(child)
 
@@ -114,7 +121,14 @@ class MainFrame(wx.Frame):
         self.SendSizeEvent()
 
     def _make_all_children_smaller(self, window):
-        window.SetFont(window.GetFont().MakeSmaller())
+        # Preserve wx.Choice selection across font change
+        if isinstance(window, wx.Choice):
+            choice_selection = window.GetSelection()
+            window.SetFont(window.GetFont().MakeSmaller())
+            window.SetSelection(choice_selection)
+        else:
+            window.SetFont(window.GetFont().MakeSmaller())
+
         for child in window.GetChildren():
             self._make_all_children_smaller(child)
 
