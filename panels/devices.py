@@ -46,9 +46,10 @@ class DevicesPanel(wx.Panel):
         device_box.Add(device_list_box, 1, flag=wx.EXPAND)
 
         device_details_box = wx.BoxSizer(wx.HORIZONTAL)  # Bottom part: device information
-        self.temp_text = wx.TextCtrl(self, wx.ID_ANY, "Device information goes here",
+        self.ble_text = wx.TextCtrl(self, wx.ID_ANY,
+                                     "NOTE: BLE devices may take several seconds to discover and connect",
                                      style=wx.TE_READONLY)
-        device_details_box.Add(self.temp_text, 1, flag=wx.EXPAND)
+        device_details_box.Add(self.ble_text, 1, flag=wx.EXPAND)
 
         sizer.Add(device_box, 0, flag=wx.EXPAND)
         sizer.Add(device_details_box, 0, flag=wx.EXPAND)
