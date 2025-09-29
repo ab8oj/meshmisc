@@ -1,4 +1,5 @@
 import wx
+from datetime import datetime
 from pubsub import pub
 
 import shared
@@ -12,7 +13,7 @@ class DevicesPanel(wx.Panel):
         wx.Panel.__init__(self, parent, wx.ID_ANY)
 
         sizer = wx.BoxSizer(wx.VERTICAL)  # outer box
-        device_box = wx.BoxSizer(wx.HORIZONTAL)  # Top part: buttons and device list
+        device_box = wx.BoxSizer(wx.HORIZONTAL)  # Top part of page: buttons and device list
 
         device_button_box = wx.BoxSizer(wx.VERTICAL)  # Left side of device box: buttons
         discover_button = wx.Button(self, wx.ID_ANY, "Discover")
@@ -45,14 +46,49 @@ class DevicesPanel(wx.Panel):
         device_list_box.Add(self.device_list, 1, flag=wx.EXPAND)
         device_box.Add(device_list_box, 1, flag=wx.EXPAND)
 
-        device_details_box = wx.BoxSizer(wx.HORIZONTAL)  # Bottom part: device information
         self.ble_text = wx.TextCtrl(self, wx.ID_ANY,
-                                     "NOTE: BLE devices may take several seconds to discover and connect",
-                                     style=wx.TE_READONLY)
-        device_details_box.Add(self.ble_text, 1, flag=wx.EXPAND)
+                                    "NOTE: BLE devices may take several seconds to discover and connect",
+                                    style=wx.TE_READONLY)
+
+        self.device_details_grid = wx.GridBagSizer(hgap=10, vgap=5)  # Bottom part of page: device details
+        # Row 1 - device long name, model, firmware
+        self.device_name = wx.StaticText(self, wx.ID_ANY)
+        self.device_details_grid.Add(self.device_name, pos=(0, 0))
+        self.device_model_name = wx.StaticText(self, wx.ID_ANY)
+        self.device_details_grid.Add(self.device_model_name, pos=(0, 1))
+        # Row 2 - Battery level and voltage, channel and Tx utilization
+        self.battery_info = wx.StaticText(self, wx.ID_ANY)
+        self.util_info = wx.StaticText(self, wx.ID_ANY)
+        self.device_details_grid.Add(self.battery_info, pos=(1,0))
+        self.device_details_grid.Add(self.util_info, pos=(1,1))
+        # Row 3 - Position time and last heard time
+        self.last_position_time = wx.StaticText(self, wx.ID_ANY)
+        self.last_heard_time = wx.StaticText(self, wx.ID_ANY)
+        self.device_details_grid.Add(self.last_position_time, pos=(2,0))
+        self.device_details_grid.Add(self.last_heard_time, pos=(2,1))
+        # Row 4 - Channels
+        self.channel_label = wx.StaticText(self, wx.ID_ANY)
+        self.channel_0 = wx.StaticText(self, wx.ID_ANY)
+        self.channel_1 = wx.StaticText(self, wx.ID_ANY)
+        self.channel_2 = wx.StaticText(self, wx.ID_ANY)
+        self.channel_3 = wx.StaticText(self, wx.ID_ANY)
+        self.channel_4 = wx.StaticText(self, wx.ID_ANY)
+        self.channel_5 = wx.StaticText(self, wx.ID_ANY)
+        self.channel_6 = wx.StaticText(self, wx.ID_ANY)
+        self.channel_7 = wx.StaticText(self, wx.ID_ANY)
+        self.device_details_grid.Add(self.channel_label, pos=(3,0), span=(8,1))
+        self.device_details_grid.Add(self.channel_0, pos=(3,1))
+        self.device_details_grid.Add(self.channel_1, pos=(4,1))
+        self.device_details_grid.Add(self.channel_2, pos=(5,1))
+        self.device_details_grid.Add(self.channel_3, pos=(6,1))
+        self.device_details_grid.Add(self.channel_4, pos=(7,1))
+        self.device_details_grid.Add(self.channel_5, pos=(8,1))
+        self.device_details_grid.Add(self.channel_6, pos=(9,1))
+        self.device_details_grid.Add(self.channel_7, pos=(10,1))
 
         sizer.Add(device_box, 0, flag=wx.EXPAND)
-        sizer.Add(device_details_box, 0, flag=wx.EXPAND)
+        sizer.Add(self.ble_text, 0, flag=wx.EXPAND)
+        sizer.Add(self.device_details_grid, 0, flag=wx.EXPAND)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -65,6 +101,62 @@ class DevicesPanel(wx.Panel):
         # Non-GUI stuff
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
+
+    # === Helpers and utilities
+
+    def _show_device_info(self, device_index):
+        # TODO: Update this info once every minute or so using a timer event
+        # Show device info for the device at position <index> in the device list
+        # This device must already have an interface object
+        device_short_name = self.device_list.GetItemText(device_index, 0)
+        device_interface = shared.connected_interfaces[device_short_name]
+        my_node_info = device_interface.getMyNodeInfo()
+
+        # Row 1
+        longname = my_node_info.get("user", {}).get("longName", "No name")
+        model = my_node_info.get("user", {}).get("hwModel", "Unknown model")
+        if hasattr(device_interface.metadata, "firmware_version"):
+            firmware = device_interface.metadata.firmware_version
+        else:
+            firmware = "Unknown firmware version"
+        self.device_name.SetLabel(longname)
+        self.device_model_name.SetLabel(f"{model} {firmware}")
+
+        # Row 2
+        battery_level = my_node_info.get("deviceMetrics", {}).get("batteryLevel", "?")
+        battery_voltage = my_node_info.get("deviceMetrics", {}).get("voltage", "?")
+        self.battery_info.SetLabel(f"Battery level: {battery_level}%, {battery_voltage}V")
+        chan_util = my_node_info.get("deviceMetrics", {}).get("channelUtilization", "?")
+        tx_util = my_node_info.get("deviceMetrics", {}).get("airUtilTx", "?")
+        self.util_info.SetLabel(f"Channel utilization: {chan_util} Tx:{tx_util}")
+
+        # Row 3
+        last_pos = my_node_info.get("position", {}).get("time", 0)
+        last_heard = my_node_info.get("lastHeard", 0)
+        self.last_position_time.SetLabel(f"Last position time: {datetime.fromtimestamp(int(last_pos))}")
+        self.last_heard_time.SetLabel(f"Last heard time: {datetime.fromtimestamp(int(last_heard))}")
+
+        # Row 4
+        self.channel_label.SetLabel("Channels")
+        channel_list = device_interface.localNode.channels
+        self.channel_0.SetLabel(f"0: {channel_list[0].settings.name}")
+        self.channel_1.SetLabel(f"1: {channel_list[1].settings.name}")
+        self.channel_2.SetLabel(f"2: {channel_list[2].settings.name}")
+        self.channel_3.SetLabel(f"3: {channel_list[3].settings.name}")
+        self.channel_4.SetLabel(f"4: {channel_list[4].settings.name}")
+        self.channel_5.SetLabel(f"5: {channel_list[5].settings.name}")
+        self.channel_6.SetLabel(f"6: {channel_list[6].settings.name}")
+        self.channel_7.SetLabel(f"7: {channel_list[7].settings.name}")
+
+    def _clear_device_info(self):
+        # Since this is a sizer, it's not as simple as getting its children
+        children = self.device_details_grid.GetChildren()
+        for child in children:
+            widget = child.GetWindow()
+            if isinstance(widget, wx.StaticText):
+                widget.SetLabel("")
+            elif isinstance(widget, wx.TextCtrl):
+                widget.Clear()
 
     # === wxPython events
 
@@ -83,9 +175,12 @@ class DevicesPanel(wx.Panel):
             message = (f"WARNING: Device with name {short_name} was not found in the node list, "
                        f"connection status cannot be updated")
             wx.RichMessageDialog(self, message, style=wx.ICON_WARNING).ShowModal()
-        else:
-            self.device_list.SetItem(index, 1, status)
-            self.Layout()
+            return
+
+        self.device_list.SetItem(index, 1, status)
+        if self.device_list.IsSelected(index) and status == "Connected":
+            self._show_device_info(index)
+        self.Layout()
         return
 
     # noinspection PyUnusedLocal
@@ -176,14 +271,20 @@ class DevicesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onDeviceSelected(self, event):
+        selected_index = event.GetIndex()
+        selected_short_name = self.device_list.GetItemText(selected_index, 0)
         self.connect_button.Enable()
         self.disconnect_button.Enable()
+        # We won't have an interface object for this device if it hasn't connected at least once
+        if selected_short_name in shared.connected_interfaces:
+            self._show_device_info(selected_index)
         return
 
     # noinspection PyUnusedLocal
     def onDeviceDeselected(self, event):
         self.connect_button.Disable()
         self.disconnect_button.Disable()
+        self._clear_device_info()
 
     # === Meshtastic pub/sub topic handlers
     """
