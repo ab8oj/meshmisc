@@ -203,7 +203,11 @@ class MainFrame(wx.Frame):
         return
 
     def onNodeUpdated(self, node, interface):
-        wx.PostEvent(self.panel_pointers["node"], node_updated(node=node, interface=interface))
+        my_shortname = interface.getShortName()
+        nodeid = node.get("user", {}).get("id", None)
+        nodenum = node.get("num", None)
+        wx.PostEvent(self.panel_pointers["node"], node_updated(device=my_shortname, nodeid=nodeid, nodenum=nodenum,
+                                                               node=node, interface=interface))
         return
 
 def _load_channel_message_log():

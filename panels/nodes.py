@@ -21,16 +21,16 @@ class NodesPanel(wx.Panel):
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
         sizer.Add(self.msg_device_picker, 0)
 
-        node_list_label = wx.StaticText(self, wx.ID_ANY, "Nodes")
+        self.node_list_label = wx.StaticText(self, wx.ID_ANY, "Nodes")
         self.node_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
-        self.node_list.SetMinSize(wx.Size(-1, 100))
-        self.node_list.SetMaxSize(wx.Size(-1, 150))
+        self.node_list.SetMinSize(wx.Size(-1, 300))
+        self.node_list.SetMaxSize(wx.Size(-1, 300))
         self.node_list.InsertColumn(0, "Node ID", width=wx.LIST_AUTOSIZE)
         self.node_list.InsertColumn(1, "Name", width=50)
         self.node_list.InsertColumn(2, "Long Name", width=400)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onNodeSelected, self.node_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onNodeDeselected, self.node_list)
-        sizer.Add(node_list_label, 0, flag=wx.LEFT)
+        sizer.Add(self.node_list_label, 0, flag=wx.LEFT)
         sizer.Add(self.node_list, 0, flag=wx.EXPAND)
 
         self.convo_button = wx.Button(self, wx.ID_ANY, "Show direct message conversation")
@@ -185,38 +185,42 @@ class NodesPanel(wx.Panel):
             self.selected_device = device_name
             self.msg_device_picker.Select(0)
 
-        # Populate the node list
-        for node in node_dict:
-            # TODO: change to using .get() for key error avoidance
-            self.node_list.Append((node, node_dict[node]["user"]["shortName"],
-                                   node_dict[node]["user"]["longName"]))
-
     # noinspection PyUnusedLocal
     def receive_node_event(self, event):
-        # TODO: Doesn't look like we get an immediate node change event on a name change, dig deeper
-        # TODO: change to using .get() for key error avoidance
-        node = event.node
+        device_name = event.device
+        node_id = event.nodeid  # Could be None
+        node_num = event.nodenum  # Could be None
+        node = event.node  # Meshtastic.Node object
         interface = event.interface  # Not used here, just document its existence
 
-        node_id = node["user"]["id"]
-        short_name = node["user"]["shortName"]
-        long_name = node["user"]["longName"]
+        short_name = node.get("user", {}).get("shortName", "??")
+        long_name = node.get("user", {}).get("longName", "Unknown")
+
+        # Add to shared node database
+        # For now, it's keyed by node ID for compatibility. See how many missing node IDs we get
+        if node_id:
+            if device_name not in shared.node_database:
+                shared.node_database[device_name] = {}
+            shared.node_database[device_name][node_id] = node
+        else:
+            # TODO: Change to logging
+            print("Could not add node to shared database, no nodeID")
+            print(f"Device name: {device_name}, node number: {node_num}, "
+                  f"short_name: {short_name}, long_name: {long_name}")
+
+        # Find the node in the list
         matching_list_item = self.node_list.FindItem(-1, node_id)
 
-        # If the node is not in the list, add it. If it is, update it if shortname or longname has changed
+        # If the node is not in the list, add it. If it is, replace it
         if matching_list_item == wx.NOT_FOUND:
             self.node_list.Append((node_id, short_name, long_name))
         else:
-            list_shortname = self.node_list.GetItem(matching_list_item, 1)
-            list_longname = self.node_list.GetItem(matching_list_item, 2)
-            if list_shortname != short_name or list_longname != long_name:
-                self.node_list.DeleteItem(matching_list_item)
-                self.node_list.Append((node_id, short_name, long_name))
-            # If the node is currently selected, update the node info the easy way: deselect and reselect it
-            # This will cause a re-read of that node's info from the selected device
-            if self.node_list.IsSelected(matching_list_item):
-                self.node_list.Select(matching_list_item, 0)
-                self.node_list.Select(matching_list_item, 1)
+            self.node_list.DeleteItem(matching_list_item)
+            self.node_list.Append((node_id, short_name, long_name))
+
+        # Update node count
+        self.node_list_label.SetLabel(f"Nodes ({self.node_list.GetItemCount()})")
+        self.Layout()
 
         return
 

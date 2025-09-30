@@ -46,3 +46,32 @@ channel_messages[devicename][channel] is a list of messages:
     }
 }
 """
+
+# Shared in-memory node database (potentially more reliable than in-device node database)
+node_database = {}
+"""
+{devicename:
+    {nodeid:
+        {"shortName": shotname,
+         "longName": longname,
+         "hwModel": hwmodel,
+         "publicKey": publickey,
+         "position":
+            {"time": timestamp,,
+             "latitude": latitude,
+             "longitude": longitude,
+             "altitude": altitude,
+             },
+        "deviceMetrics":
+            {"batteryLevel": batterylevel,
+             "voltage": voltage,
+             "channelUtilization": channelUtilization,
+             "airUtilTx": airUtilTx,
+             "uptimeSeconds": uptimeSeconds,
+            },
+        "snr": snr,
+        "hopsAway": hopsAway,
+        "lastHeard": lastHeard,
+    }
+}
+"""
