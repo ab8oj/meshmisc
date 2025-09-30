@@ -26,13 +26,24 @@ Access to Meshtastic devices and external systems
 * tcp.py (FUTURE) - Meshtastic devices via TCP connections
 * email_interface.py - send email via SMTP over TLS
 
+# First cut at installation instructions
+1. Clone the meshmisc repo: `git clone https://github.com/ab8oj/meshmisc.git`
+2. Create the .env file in the meshmisc directory (see contents below)
+3. Install the required packages
+* pip install wxPython
+* pip install pypubsub
+* pip install meshtastic
+* pip install objectlistview3
+* pip install urllib3==1.26.6
+4. Run the app: `python ./mesh_gui.py`
+
 # .env contents
 APP_LOG_NAME=msg_forward.log  
 MSG_LOG_NAME=messages.log  
 CHANNEL_MESSAGE_LOG=channel-messages.log  
 DIRECT_MESSAGE_LOG=direct-messages.log  
 SMTP_SERVER=<smtp server address>  
-SMTP_SENDER=<smtp server username>  
+SMTP_SENDER=<smtp server username>
 SMTP_PASSWORD=<smtp server password>   
 EMAIL_FROM_ADDRESS=<email-from-address>  
 EMAIL_TO_ADDRESS=<email-to-address>  
