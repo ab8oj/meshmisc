@@ -64,7 +64,7 @@ class DirectMessagesPanel(wx.Panel):
     def _find_nodeid_from_shortname(self, shortname):
         # Brute force for now: shuffle through the interface's node list looking for the shortname
         for node, node_info in shared.connected_interfaces[self.selected_device].nodes.items():
-            if node_info["user"]["shortName"] == shortname:
+            if node_info.get("user", {}).get("shortName", None) == shortname:
                 return node
         return None
 
