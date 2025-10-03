@@ -157,7 +157,6 @@ class MainFrame(wx.Frame):
 
     def onIncomingMessage(self, packet, interface):
         # TODO: Implement wantAck (see https://deepwiki.com/meshtastic/Meshtastic-Apple/2.2-mesh-packets)
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         my_shortname = interface.getShortName()
         my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")
 
@@ -168,34 +167,38 @@ class MainFrame(wx.Frame):
 
         text_message = packet.get("decoded", {}).get("text", "Unknown text")
 
-        if "fromId" in packet:
-            if packet["fromId"] in interface.nodes:
-                from_shortname = interface.nodes[packet["fromId"]].get("user", {}).get("shortName", "None")
-            elif packet["fromId"] is None:
-                # We didn't get a fromId in the message, how rude.
-                # TODO: Log this
-                if packet.get("viaMqtt", False):
-                    from_shortname = "MQTT"
-                else:
-                    from_shortname = "----"  # Differentiate this from the fall-thru default case
-            else:
-                # We got a fromId but it's not in the MeshInterface node list
-                # TODO: Log this
-                from_shortname = "????"
-        else:  # fromId key is not even in the packat
-            from_shortname = "UNK?"
+        from_id = packet.get("fromId", None)
+        from_num = packet.get("from", None)
+        from_shortname = None
+        # Start by looking up the sender's shortname in interface.nodes
+        if from_id in interface.nodes:
+            from_shortname = interface.nodes[from_id].get("user", {}).get("shortName", None)
+        # If we didn't get shortname from interface.nodes, try interface.nodesByNum
+        if not from_shortname:
+            if from_num in interface.nodesByNum:
+                from_shortname = interface.nodesByNum[from_num].get("user", {}).get("shortName", None)
+        # Didn't get it either place
+        if not from_shortname:
+            from_shortname = "????"
 
         to_id = packet.get("toId", "Unknown ToId")
+
+        rx_timestamp = packet.get("rxTime", None)
+        if rx_timestamp:
+            rx_time = datetime.fromtimestamp(int(rx_timestamp))
+        else:
+            rx_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         if to_id == my_node_id:
             wx.PostEvent(self.panel_pointers["dm"], process_received_message(device=my_shortname, channel=channel,
-                                                                  sender=from_shortname, timestamp=now,
+                                                                  sender=from_shortname, timestamp=rx_time,
                                                                   message=text_message))
             wx.PostEvent(self.panel_pointers["node"], process_received_message(device=my_shortname, channel=channel,
-                                                                 sender=from_shortname, timestamp=now,
+                                                                 sender=from_shortname, timestamp=rx_time,
                                                                  message=text_message))
         elif to_id == "^all":
             wx.PostEvent(self.panel_pointers["chm"], process_received_message(device=my_shortname, channel=channel,
-                                                                  sender=from_shortname, timestamp=now,
+                                                                  sender=from_shortname, timestamp=rx_time,
                                                                   message=text_message))
         else:
             print("to_id is neither my noode ID nor ^all, that should not have happened")
