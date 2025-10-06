@@ -70,6 +70,7 @@ class NodeConvoFrame(wx.Frame):
         shared.node_conversations[self.local_node_name][self.remote_node_name].append(message_dict)
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
                                  preserveSelection=True)
+        self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
 
         shared.direct_messages[self.local_node_name].append(message_dict)
         wx.PostEvent(self.GetParent(), refresh_panel())
@@ -98,3 +99,4 @@ class NodeConvoFrame(wx.Frame):
     def refresh_panel_event(self, event):
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
                                  preserveSelection=True)
+        self.messages.EnsureVisible(self.messages.GetItemCount() - 1)

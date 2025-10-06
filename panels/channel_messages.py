@@ -91,6 +91,8 @@ class ChannelMessagesPanel(wx.Panel):
         if self.selected_channel not in shared.channel_messages[self.selected_device]:
             shared.channel_messages[self.selected_device][self.selected_channel] = []
         self.messages.SetObjects(shared.channel_messages[self.selected_device][self.selected_channel])
+        if self.messages.GetItemCount() > 0:
+            self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
 
     # noinspection PyUnusedLocal
     def onChannelDeselected(self, evt):
@@ -123,6 +125,7 @@ class ChannelMessagesPanel(wx.Panel):
         shared.connected_interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
         shared.channel_messages[self.selected_device][self.selected_channel].append(message_dict)
         self.messages.SetObjects(shared.channel_messages[self.selected_device][self.selected_channel])
+        self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
         self.send_text.Clear()
 
         log_dict = {"device": self.selected_device, "channel": channel_index,
@@ -172,6 +175,7 @@ class ChannelMessagesPanel(wx.Panel):
         shared.channel_messages[device][channel].append(message_dict)
         if device == self.selected_device and channel == self.selected_channel:
             self.messages.SetObjects(shared.channel_messages[device][channel])
+            self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
 
         log_dict = {"device": device, "channel": channel, "timestamp": timestamp, "sender": sender, "message": text}
         self._log_message(log_dict)

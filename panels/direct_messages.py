@@ -73,6 +73,8 @@ class DirectMessagesPanel(wx.Panel):
     def onDevicePickerChoice(self, evt):
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
         self.messages.SetObjects(shared.direct_messages[self.selected_device])
+        if self.messages.GetItemCount() > 0:
+            self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
 
     # noinspection PyUnusedLocal
     def onQuickMsgButton(self, evt):
@@ -101,6 +103,7 @@ class DirectMessagesPanel(wx.Panel):
                         "message": text_to_send}
         shared.direct_messages[self.selected_device].append(message_dict)
         self.messages.SetObjects(shared.direct_messages[self.selected_device], preserveSelection=True)
+        self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
         shared.node_conversations[self.selected_device][selected_sender].append(message_dict)
         for child in self.active_subpanels:
             wx.PostEvent(child, refresh_panel())
@@ -140,6 +143,7 @@ class DirectMessagesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
         self.messages.SetObjects(shared.direct_messages[self.selected_device], preserveSelection=True)
+        self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
         for child in self.active_subpanels:
             wx.PostEvent(child, refresh_panel())
 
@@ -154,6 +158,8 @@ class DirectMessagesPanel(wx.Panel):
             self.selected_device = device_name
             self.msg_device_picker.Select(0)
             self.messages.SetObjects(shared.direct_messages[device_name])
+            if self.messages.GetItemCount() > 0:
+                self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
 
     def receive_message_event(self, event):
         device = event.device
@@ -168,6 +174,7 @@ class DirectMessagesPanel(wx.Panel):
         shared.direct_messages[device].append(message_dict)
         if device == self.selected_device:
             self.messages.SetObjects(shared.direct_messages[device], preserveSelection=True)
+            self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
 
         # Add message to the shared node_conversations buffer
         if device not in shared.node_conversations:
