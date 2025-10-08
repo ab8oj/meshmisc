@@ -8,6 +8,7 @@ from pubsub import pub
 
 import shared
 from panels.app_config import AppConfigPanel
+from panels.device_config import DevConfigPanel
 from panels.devices import DevicesPanel
 from panels.nodes import NodesPanel
 from panels.channel_messages import ChannelMessagesPanel
@@ -69,6 +70,8 @@ class MainFrame(wx.Frame):
         self.panel_pointers["node"] = self.lb.GetPage(3)
         self.lb.AddPage(AppConfigPanel(self.lb), "Application configuration")
         self.panel_pointers["ac"] = self.lb.GetPage(4)
+        self.lb.AddPage(DevConfigPanel(self.lb), "Device configuration")
+        self.panel_pointers["devconfig"] = self.lb.GetPage(5)
 
         self.Show(True)
 
