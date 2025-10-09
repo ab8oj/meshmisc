@@ -1,9 +1,9 @@
-import copy
 import wx
 import wx.propgrid as wxpg
 
 import shared
-from gui_events import set_status_bar
+from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL
+
 
 class DevConfigPanel(wx.Panel):
     def __init__(self, parent):
@@ -12,24 +12,13 @@ class DevConfigPanel(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         dev_picker_label = wx.StaticText(self, wx.ID_ANY, "Devices")
-        self.msg_device_picker = wx.Choice(self, wx.ID_ANY, choices=[],
-                                           size=wx.Size(150, 20),
-                                           style=wx.CB_SORT | wx.ALIGN_TOP)
-        self.msg_device_picker.SetSelection(wx.NOT_FOUND)
-        self.Bind(wx.EVT_CHOICE, self.onDevicePickerChoice, self.msg_device_picker)
+        self.device_picker = wx.Choice(self, wx.ID_ANY, choices=[],
+                                       size=wx.Size(150, 20),
+                                       style=wx.CB_SORT | wx.ALIGN_TOP)
+        self.device_picker.SetSelection(wx.NOT_FOUND)
+        self.Bind(wx.EVT_CHOICE, self.onDevicePickerChoice, self.device_picker)
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
-        sizer.Add(self.msg_device_picker, 0)
-
-        """
-        wx.EnumProperty to select from a list of choices (int or string)
-        SetPropertyEditor can set choice, checkbox, etc editors. 
-        ...so, when would I use wx.EnumProperty and when would I use SetPropertyEditor?
-        
-        Try this with categories and just one set of buttons
-        Top level: device/local/radio config, module config
-        Second level: keys in localConfig / moduleConfig dicts
-        Third level: key/value pairs under those
-        """
+        sizer.Add(self.device_picker, 0)
 
         button_box = wx.BoxSizer(wx.HORIZONTAL)
         reload_button = wx.Button(self, label="Reload")
@@ -52,32 +41,84 @@ class DevConfigPanel(wx.Panel):
 
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
 
-    def _reload_config_editor(self):
+        self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
+        self.Bind(EVT_ADD_DEVICE, self.add_device_event)
+
+    def _reload_config_editor(self, interface):
         if not self.selected_device:
             return  # Just in case
 
-        # Buffer for storing values that might change. This makes for easy reloading / discarding of changes
-        self.all_configs = {
-            "localConfig": copy.deepcopy(shared.connected_interfaces[self.selected_device]["localConfig"]),
-            "moduleConfig": copy.deepcopy(shared.connected_interfaces[self.selected_device]["moduleConfig"])
-        }
+        # Buffers for storing values that might change. This makes for easy reloading / discarding of changes
+        this_device = interface.getNode('^local')
+        self.localConfig = this_device.localConfig
+        self.moduleConfig = this_device.moduleConfig
 
-        # *** more stuff here
+        self.config_editor.Clear()
+        self._load_config_values(self.localConfig, "Device Configuration")
+        self._load_config_values(self.moduleConfig, "Module Configuration")
+        self.config_editor.CollapseAll()
 
         return
 
+    def _load_config_values(self, config, title):
+        # The configuration bits use Google protocol buffers (oh, joy), hence the DESCRIPTOR stuff herein
+        # General format: config.category.setting (e.g. localConfig.bluetooth.fixed_pin = "123456")
+        config_section_category = wxpg.PropertyCategory(title)
+        config_section_category.SetBackgroundColour(wx.Colour(255, 255, 255))
+        self.config_editor.Append(config_section_category)
+
+        categories = config.DESCRIPTOR.fields_by_name.keys()  # Get the names of all the categories
+        for cat in categories:
+            if cat == "version":  # Gotta love the exception
+                continue
+            self.config_editor.Append(wxpg.PropertyCategory(cat))  # Make it a category in the property grid
+
+            category_settings = getattr(config, cat)
+            setting_keys = category_settings.DESCRIPTOR.fields_by_name  # Get all the settings under this category
+            for setting_key in setting_keys:
+                if setting_key == "version":  # Again
+                    continue
+                setting_value = getattr(category_settings, setting_key)
+                # Note: there are duplicate keys across configuration categories, but property names must be unique.
+                #       So, create a unique name for each (e.g. Security_isManaged). Labels can be duplicated.
+                self.config_editor.AppendIn(cat, wxpg.StringProperty(str(setting_key), f"{cat}_{str(setting_key)}",
+                                                                     str(setting_value)))
+
+        self.config_editor.Refresh()
+        return
+
+    """
+    wx.EnumProperty to select from a list of choices (int or string)
+    SetPropertyEditor can set choice, checkbox, etc editors. 
+    ...so, when would I use wx.EnumProperty and when would I use SetPropertyEditor?
+    """
+
+    # wxPython events
+
     def onDevicePickerChoice(self, event):
-        pass
-        # *** copy from channel_messages
-        # *** set device and module picker choice boxes
+        self.selected_device = self.device_picker.GetString(event.GetSelection())
+        self._reload_config_editor(shared.connected_interfaces[self.selected_device])
 
     def onReloadButton(self, event):
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the configuration editor?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
-            self._reload_config_editor()
+            self._reload_config_editor(shared.connected_interfaces[self.selected_device])
             wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="Configuration reloaded"))
 
     def onSaveButton(self, event):
         pass
         # *** Copy changed values to radio then write config
+
+    def add_device_event(self, event):
+        device_name = event.name
+
+        # Add the new device to the device picker and message buffer
+        self.device_picker.Append(device_name)
+        if self.device_picker.GetCount() == 1:  # this is the first device, auto-select it
+            self.selected_device = device_name
+            self.device_picker.Select(0)
+            self._reload_config_editor(shared.connected_interfaces[self.selected_device])
+
+    def refresh_panel_event(self, event):
+        self.Layout()

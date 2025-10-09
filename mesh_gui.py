@@ -144,6 +144,7 @@ class MainFrame(wx.Frame):
         wx.PostEvent(self.panel_pointers["chm"], add_device(name=event.name, interface=event.interface))
         wx.PostEvent(self.panel_pointers["dm"], add_device(name=event.name, interface=event.interface))
         wx.PostEvent(self.panel_pointers["node"], add_device(name=event.name, interface=event.interface))
+        wx.PostEvent(self.panel_pointers["devconfig"], add_device(name=event.name, interface=event.interface))
 
     def refreshSpecifcPanel(self, event):
         panel_name = event.panel_name
