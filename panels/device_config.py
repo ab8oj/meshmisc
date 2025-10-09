@@ -20,17 +20,29 @@ class DevConfigPanel(wx.Panel):
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
         sizer.Add(self.device_picker, 0)
 
-        button_box = wx.BoxSizer(wx.HORIZONTAL)
-        reload_button = wx.Button(self, label="Reload")
-        button_box.Add(reload_button, 0)
-        save_button = wx.Button(self, label="Save")
-        button_box.Add(save_button, 0)
-        self.Bind(wx.EVT_BUTTON, self.onReloadButton, reload_button)
-        self.Bind(wx.EVT_BUTTON, self.onSaveButton, save_button)
-        sizer.Add(button_box, 0, wx.CENTER)
+        sizer.Add(wx.StaticText(self, wx.ID_ANY, "Device Configuration"), 0, wx.CENTER)
+        lc_button_box = wx.BoxSizer(wx.HORIZONTAL)
+        lc_reload_button = wx.Button(self, label="Reload")
+        lc_button_box.Add(lc_reload_button, 0)
+        lc_save_button = wx.Button(self, label="Save")
+        lc_button_box.Add(lc_save_button, 0)
+        self.Bind(wx.EVT_BUTTON, self.onLCReloadButton, lc_reload_button)
+        self.Bind(wx.EVT_BUTTON, self.onLCSaveButton, lc_save_button)
+        sizer.Add(lc_button_box, 0, wx.CENTER)
+        self.lc_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
+        sizer.Add(self.lc_config_editor, 1, wx.EXPAND)
 
-        self.config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
-        sizer.Add(self.config_editor, 1, wx.EXPAND)
+        sizer.Add(wx.StaticText(self, wx.ID_ANY, "Module Configuration"), 0, wx.CENTER)
+        mc_button_box = wx.BoxSizer(wx.HORIZONTAL)
+        mc_reload_button = wx.Button(self, label="Reload")
+        mc_button_box.Add(mc_reload_button, 0)
+        mc_save_button = wx.Button(self, label="Save")
+        mc_button_box.Add(mc_save_button, 0)
+        self.Bind(wx.EVT_BUTTON, self.onMCReloadButton, mc_reload_button)
+        self.Bind(wx.EVT_BUTTON, self.onMCSaveButton, mc_save_button)
+        sizer.Add(mc_button_box, 0, wx.CENTER)
+        self.mc_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
+        sizer.Add(self.mc_config_editor, 1, wx.EXPAND)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -44,34 +56,43 @@ class DevConfigPanel(wx.Panel):
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
 
-    def _reload_config_editor(self, interface):
+    def _reload_lc_grid(self, interface):
         if not self.selected_device:
             return  # Just in case
 
         # Buffers for storing values that might change. This makes for easy reloading / discarding of changes
         this_device = interface.getNode('^local')
         self.localConfig = this_device.localConfig
-        self.moduleConfig = this_device.moduleConfig
 
-        self.config_editor.Clear()
-        self._load_config_values(self.localConfig, "Device Configuration")
-        self._load_config_values(self.moduleConfig, "Module Configuration")
-        self.config_editor.CollapseAll()
+        self.lc_config_editor.Clear()
+        self._load_config_values(self.localConfig, self.lc_config_editor)
+        self.lc_config_editor.CollapseAll()
 
         return
 
-    def _load_config_values(self, config, title):
+    def _reload_mc_grid(self, interface):
+        if not self.selected_device:
+            return  # Just in case
+
+        # Buffers for storing values that might change. This makes for easy reloading / discarding of changes
+        this_device = interface.getNode('^local')
+        self.moduleConfig = this_device.moduleConfig
+
+        self.mc_config_editor.Clear()
+        self._load_config_values(self.moduleConfig, self.mc_config_editor)
+        self.mc_config_editor.CollapseAll()
+
+        return
+
+    @staticmethod
+    def _load_config_values(config, grid):
         # The configuration bits use Google protocol buffers (oh, joy), hence the DESCRIPTOR stuff herein
         # General format: config.category.setting (e.g. localConfig.bluetooth.fixed_pin = "123456")
-        config_section_category = wxpg.PropertyCategory(title)
-        config_section_category.SetBackgroundColour(wx.Colour(255, 255, 255))
-        self.config_editor.Append(config_section_category)
-
         categories = config.DESCRIPTOR.fields_by_name.keys()  # Get the names of all the categories
         for cat in categories:
             if cat == "version":  # Gotta love the exception
                 continue
-            self.config_editor.Append(wxpg.PropertyCategory(cat))  # Make it a category in the property grid
+            grid.Append(wxpg.PropertyCategory(cat))  # Make it a category in the property grid
 
             category_settings = getattr(config, cat)
             setting_keys = category_settings.DESCRIPTOR.fields_by_name  # Get all the settings under this category
@@ -81,10 +102,9 @@ class DevConfigPanel(wx.Panel):
                 setting_value = getattr(category_settings, setting_key)
                 # Note: there are duplicate keys across configuration categories, but property names must be unique.
                 #       So, create a unique name for each (e.g. Security_isManaged). Labels can be duplicated.
-                self.config_editor.AppendIn(cat, wxpg.StringProperty(str(setting_key), f"{cat}_{str(setting_key)}",
-                                                                     str(setting_value)))
+                grid.AppendIn(cat, wxpg.StringProperty(str(setting_key), f"{cat}_{str(setting_key)}",
+                                                                        str(setting_value)))
 
-        self.config_editor.Refresh()
         return
 
     """
@@ -97,16 +117,28 @@ class DevConfigPanel(wx.Panel):
 
     def onDevicePickerChoice(self, event):
         self.selected_device = self.device_picker.GetString(event.GetSelection())
-        self._reload_config_editor(shared.connected_interfaces[self.selected_device])
+        self._reload_mc_grid(shared.connected_interfaces[self.selected_device])
+        self._reload_lc_grid(shared.connected_interfaces[self.selected_device])
 
-    def onReloadButton(self, event):
-        confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the configuration editor?",
+    def onLCReloadButton(self, event):
+        confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the device configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
-            self._reload_config_editor(shared.connected_interfaces[self.selected_device])
-            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="Configuration reloaded"))
+            self._reload_lc_grid(shared.connected_interfaces[self.selected_device])
+            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="Device configuration reloaded"))
 
-    def onSaveButton(self, event):
+    def onLCSaveButton(self, event):
+        pass
+        # *** Copy changed values to radio then write config
+
+    def onMCReloadButton(self, event):
+        confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the module configuration?",
+                                       style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
+        if confirm.ShowModal() == wx.ID_OK:
+            self._reload_mc_grid(shared.connected_interfaces[self.selected_device])
+            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="Module configuration reloaded"))
+
+    def onMCSaveButton(self, event):
         pass
         # *** Copy changed values to radio then write config
 
@@ -118,7 +150,8 @@ class DevConfigPanel(wx.Panel):
         if self.device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
             self.device_picker.Select(0)
-            self._reload_config_editor(shared.connected_interfaces[self.selected_device])
+            self._reload_mc_grid(shared.connected_interfaces[self.selected_device])
+            self._reload_lc_grid(shared.connected_interfaces[self.selected_device])
 
     def refresh_panel_event(self, event):
         self.Layout()
