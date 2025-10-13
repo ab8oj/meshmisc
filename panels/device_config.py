@@ -84,8 +84,7 @@ class DevConfigPanel(wx.Panel):
 
         return
 
-    @staticmethod
-    def _load_config_values(config, grid):
+    def _load_config_values(self, config, grid):
         # The configuration bits use Google protocol buffers (oh, joy), hence the DESCRIPTOR stuff herein
         # General format: config.category.setting (e.g. localConfig.bluetooth.fixed_pin = "123456")
         categories = config.DESCRIPTOR.fields_by_name.keys()  # Get the names of all the categories
@@ -99,13 +98,47 @@ class DevConfigPanel(wx.Panel):
             for setting_key in setting_keys:
                 if setting_key == "version":  # Again
                     continue
+                editor = self._get_editor_type(config, setting_key)
                 setting_value = getattr(category_settings, setting_key)
+                """
+                config.DESCRIPTOR.fields_by_name[setting_key].enum_type.name = name of enum type
+                   .enum_type is None if it's not an enum type
+                onfig.DESCRIPTOR.fields_by_name[setting_key].enum_type.<presumably "values" or something>
+                    is a list of values
+                    maybe "values_by_name"? Each of those has a corresponding .number to get the numeric value. See:
+                    https://stackoverflow.com/questions/40226049/find-enums-listed-in-python-descriptor-for-protobuf
+                ...according to https://stackoverflow.com/questions/26849968/finding-enum-type-in-a-protobuffer
+                """
                 # Note: there are duplicate keys across configuration categories, but property names must be unique.
                 #       So, create a unique name for each (e.g. Security_isManaged). Labels can be duplicated.
                 grid.AppendIn(cat, wxpg.StringProperty(str(setting_key), f"{cat}_{str(setting_key)}",
                                                                         str(setting_value)))
+                """
+                Replace the above with:
+                    Add the property to the grid (we need the return value which is a PGProperty)
+                        using the appropriate data type 
+                    SetPropertyEditor of that property using "editor" 
+                        What is "id" in SetPropertyEditor? property, str, or id
+                        Just Internet search for examples of SetPropertyEditor
+                        
+                    *** Maybe change _get_editor_type to actually add the property and set the editor type 
+                """
 
         return
+
+    @staticmethod
+    def _get_editor_type(config, setting_key):
+        if isinstance(setting_key, bool):
+            return "CheckBox"
+        elif isinstance(setting_key, int):
+            return "TextCtrl"
+        elif isinstance(setting_key, str):
+            if config.DESCRIPTOR.fields_by_name[setting_key].enum_type:
+                return "Will figure out enum type later"
+            else:
+                return "TextCtrl"
+        else:
+            return "TextCtrl"  # default to simple string
 
     """
     wx.EnumProperty to select from a list of choices (int or string)
