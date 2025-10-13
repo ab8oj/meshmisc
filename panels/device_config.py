@@ -98,52 +98,53 @@ class DevConfigPanel(wx.Panel):
             for setting_key in setting_keys:
                 if setting_key == "version":  # Again
                     continue
-                editor = self._get_editor_type(config, setting_key)
                 setting_value = getattr(category_settings, setting_key)
-                """
-                config.DESCRIPTOR.fields_by_name[setting_key].enum_type.name = name of enum type
-                   .enum_type is None if it's not an enum type
-                onfig.DESCRIPTOR.fields_by_name[setting_key].enum_type.<presumably "values" or something>
-                    is a list of values
-                    maybe "values_by_name"? Each of those has a corresponding .number to get the numeric value. See:
-                    https://stackoverflow.com/questions/40226049/find-enums-listed-in-python-descriptor-for-protobuf
-                ...according to https://stackoverflow.com/questions/26849968/finding-enum-type-in-a-protobuffer
-                """
-                # Note: there are duplicate keys across configuration categories, but property names must be unique.
-                #       So, create a unique name for each (e.g. Security_isManaged). Labels can be duplicated.
-                grid.AppendIn(cat, wxpg.StringProperty(str(setting_key), f"{cat}_{str(setting_key)}",
-                                                                        str(setting_value)))
-                """
-                Replace the above with:
-                    Add the property to the grid (we need the return value which is a PGProperty)
-                        using the appropriate data type 
-                    SetPropertyEditor of that property using "editor" 
-                        What is "id" in SetPropertyEditor? property, str, or id
-                        Just Internet search for examples of SetPropertyEditor
-                        
-                    *** Maybe change _get_editor_type to actually add the property and set the editor type 
-                """
+                self._add_setting_to_grid(category_settings, setting_key, setting_value, grid, cat)
 
         return
 
-    @staticmethod
-    def _get_editor_type(config, setting_key):
-        if isinstance(setting_key, bool):
-            return "CheckBox"
-        elif isinstance(setting_key, int):
-            return "TextCtrl"
-        elif isinstance(setting_key, str):
-            if config.DESCRIPTOR.fields_by_name[setting_key].enum_type:
-                return "Will figure out enum type later"
+    def _add_setting_to_grid(self, config, key, value, grid, category):
+        # Note: there are duplicate keys across configuration categories, but property names must be unique.
+        # So, create a unique name for each (e.g. Security_isManaged). Labels can be duplicated.
+
+        # Determine the property and editor types
+        if isinstance(value, bool):
+            prop= wxpg.BoolProperty(str(key), f"{category}_{str(key)}", value)
+            prop.SetEditor("CheckBox")
+        elif isinstance(value, int):
+            if config.DESCRIPTOR.fields_by_name[key].enum_type:
+                labels, label_values = self._get_choices_from_protobuf(key, config.DESCRIPTOR)
+                prop = wxpg.EnumProperty(str(key), f"{category}_{str(key)}", labels, label_values, value)
+            # And if it isn't, then it's a plain ol' string
             else:
-                return "TextCtrl"
-        else:
-            return "TextCtrl"  # default to simple string
+                prop = wxpg.IntProperty(str(key), f"{category}_{str(key)}", value)
+                prop.SetEditor("TextCtrl")
+        elif isinstance(value, str):
+            # If the protobuf says this is an enumerated type, get labels and values and make this an EnumProperty
+
+                prop = wxpg.StringProperty(str(key), f"{category}_{str(key)}", str(value))
+                prop.SetEditor("TextCtrl")
+        else:  # A new one on us, make it a string for now
+            prop = wxpg.StringProperty(str(key), f"{category}_{str(key)}", str(value))# default to simple string
+            prop.SetEditor("TextCtrl")
+
+        # Add the setting to the propertygrid
+        grid.AppendIn(category, prop)
+
+        return
+
+    def _get_choices_from_protobuf(self, key, descriptor):
+        # TODO: Make this real
+        return ["fix", "me", "soon"], [10, 20, 30]
 
     """
-    wx.EnumProperty to select from a list of choices (int or string)
-    SetPropertyEditor can set choice, checkbox, etc editors. 
-    ...so, when would I use wx.EnumProperty and when would I use SetPropertyEditor?
+    config.DESCRIPTOR.fields_by_name[setting_key].enum_type.name = name of enum type
+       .enum_type is None if it's not an enum type
+    onfig.DESCRIPTOR.fields_by_name[setting_key].enum_type.<presumably "values" or something>
+        is a list of values
+        maybe "values_by_name"? Each of those has a corresponding .number to get the numeric value. See:
+        https://stackoverflow.com/questions/40226049/find-enums-listed-in-python-descriptor-for-protobuf
+    ...according to https://stackoverflow.com/questions/26849968/finding-enum-type-in-a-protobuffer
     """
 
     # wxPython events
