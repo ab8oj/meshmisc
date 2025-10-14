@@ -105,23 +105,22 @@ class DevConfigPanel(wx.Panel):
 
     def _add_setting_to_grid(self, config, key, value, grid, category):
         # Note: there are duplicate keys across configuration categories, but property names must be unique.
-        # So, create a unique name for each (e.g. Security_isManaged). Labels can be duplicated.
+        # So, create a unique name for each (e.g. Security_isManaged). Labels (the visible text) can be duplicated.
 
         # Determine the property and editor types
         if isinstance(value, bool):
             prop= wxpg.BoolProperty(str(key), f"{category}_{str(key)}", value)
             prop.SetEditor("CheckBox")
         elif isinstance(value, int):
+            # If the protobuf says this is an enumerated type, get labels and values and make this an EnumProperty
             if config.DESCRIPTOR.fields_by_name[key].enum_type:
                 labels, label_values = self._get_choices_from_protobuf(key, config.DESCRIPTOR)
                 prop = wxpg.EnumProperty(str(key), f"{category}_{str(key)}", labels, label_values, value)
-            # And if it isn't, then it's a plain ol' string
+            # And if it isn't, then it's a plain ol' integer
             else:
                 prop = wxpg.IntProperty(str(key), f"{category}_{str(key)}", value)
                 prop.SetEditor("TextCtrl")
         elif isinstance(value, str):
-            # If the protobuf says this is an enumerated type, get labels and values and make this an EnumProperty
-
                 prop = wxpg.StringProperty(str(key), f"{category}_{str(key)}", str(value))
                 prop.SetEditor("TextCtrl")
         else:  # A new one on us, make it a string for now
@@ -133,18 +132,30 @@ class DevConfigPanel(wx.Panel):
 
         return
 
-    def _get_choices_from_protobuf(self, key, descriptor):
-        # TODO: Make this real
-        return ["fix", "me", "soon"], [10, 20, 30]
+    @staticmethod
+    def _get_choices_from_protobuf(key, descriptor):
+        # If this was called, enum_type was already checked for None-ness. Assume it's not none.
+        names = []
+        values = []
+        enum_type = descriptor.fields_by_name[key].enum_type
+
+        for value_text in enum_type.values_by_name:
+            names.append(value_text)
+            values.append(enum_type.values_by_name[value_text].number)
+
+        return names, values
 
     """
-    config.DESCRIPTOR.fields_by_name[setting_key].enum_type.name = name of enum type
-       .enum_type is None if it's not an enum type
-    onfig.DESCRIPTOR.fields_by_name[setting_key].enum_type.<presumably "values" or something>
-        is a list of values
-        maybe "values_by_name"? Each of those has a corresponding .number to get the numeric value. See:
-        https://stackoverflow.com/questions/40226049/find-enums-listed-in-python-descriptor-for-protobuf
-    ...according to https://stackoverflow.com/questions/26849968/finding-enum-type-in-a-protobuffer
+    A bit about the descriptor and the enum types contained therein:
+    A "field" in this context is the setting name (e.g. 'baud')
+    
+    fields_by_name[field_name].enum_type is None if the field is not an enum type 
+    enum_types_by_name keys are the names of the fields that are enum types (not used in this code but could be handy)
+    
+    config.DESCRIPTOR.fields_by_name[field_name].enum_type:
+       .values_by_name: keys are the text values for just this field
+       .values_by_name['text'].number is the int value of the text e.g. .values_by_name["BAUD_DEFAULT"].number = 0
+       .values_by_number[int].name looks up the name of the int val e.g. values_by_number[0] = "BAUD_DEFAULT"
     """
 
     # wxPython events
@@ -154,6 +165,7 @@ class DevConfigPanel(wx.Panel):
         self._reload_mc_grid(shared.connected_interfaces[self.selected_device])
         self._reload_lc_grid(shared.connected_interfaces[self.selected_device])
 
+    # noinspection PyUnusedLocal
     def onLCReloadButton(self, event):
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the device configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
@@ -165,6 +177,7 @@ class DevConfigPanel(wx.Panel):
         pass
         # *** Copy changed values to radio then write config
 
+    # noinspection PyUnusedLocal
     def onMCReloadButton(self, event):
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the module configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
@@ -187,5 +200,6 @@ class DevConfigPanel(wx.Panel):
             self._reload_mc_grid(shared.connected_interfaces[self.selected_device])
             self._reload_lc_grid(shared.connected_interfaces[self.selected_device])
 
+    # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
         self.Layout()
