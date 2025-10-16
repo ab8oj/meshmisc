@@ -48,38 +48,28 @@ class DevConfigPanel(wx.Panel):
         self.SetAutoLayout(True)
         sizer.Fit(self)
 
-        self.localConfig = {}
-        self.moduleConfig = {}
-
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
+        self.this_node = None
 
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
 
-    def _reload_lc_grid(self, interface):
+    def _reload_lc_grid(self):
         if not self.selected_device:
             return  # Just in case
 
-        # Buffers for storing values that might change. This makes for easy reloading / discarding of changes
-        this_device = interface.getNode('^local')
-        self.localConfig = this_device.localConfig
-
         self.lc_config_editor.Clear()
-        self._load_config_values(self.localConfig, self.lc_config_editor)
+        self._load_config_values(self.this_node.localConfig, self.lc_config_editor)
         self.lc_config_editor.CollapseAll()
 
         return
 
-    def _reload_mc_grid(self, interface):
+    def _reload_mc_grid(self):
         if not self.selected_device:
             return  # Just in case
 
-        # Buffers for storing values that might change. This makes for easy reloading / discarding of changes
-        this_device = interface.getNode('^local')
-        self.moduleConfig = this_device.moduleConfig
-
         self.mc_config_editor.Clear()
-        self._load_config_values(self.moduleConfig, self.mc_config_editor)
+        self._load_config_values(self.this_node.moduleConfig, self.mc_config_editor)
         self.mc_config_editor.CollapseAll()
 
         return
@@ -158,36 +148,96 @@ class DevConfigPanel(wx.Panel):
        .values_by_number[int].name looks up the name of the int val e.g. values_by_number[0] = "BAUD_DEFAULT"
     """
 
+    @staticmethod
+    def _get_changed_categories(editor, config):
+        changed_cats = []  # Categories that have changed settings
+        cat_iterator = editor.GetIterator(wx.propgrid.PG_ITERATE_CATEGORIES)
+        while not cat_iterator.AtEnd():
+            cat = cat_iterator.GetProperty()
+            cat_modified = False
+
+            for child_index in range(cat.GetChildCount()):
+                child = cat.Item(child_index)
+                if editor.IsPropertyModified(child):
+                    category_settings = getattr(config, cat.GetName())
+                    setattr(category_settings, child.GetLabel(), child.GetValue())  # Must be the label not the name
+                    cat_modified = True
+
+            if cat_modified:
+                changed_cats.append(cat.GetName())
+            cat_iterator.Next()
+
+        return changed_cats
+
+    def _save_changed_categories(self, changed_cats, editor):
+        saved_cats = []
+        error_cats = []
+
+        for cat in changed_cats:
+            # noinspection PyBroadException
+            try:
+                # TODO: BUG: altering the same string parameter twice causes writeConfig to hang
+                self.this_node.writeConfig(cat)
+            except Exception:
+                # TODO: Log the exception when logging is implemented
+                error_cats.append(cat)
+            else:
+                saved_cats.append(cat)
+
+        if saved_cats:
+            saved = ", ".join(saved_cats)
+        else:
+            saved = "None"
+        if error_cats:
+            errors = ", ".join(error_cats)
+        else:
+            errors = "None"
+        wx.RichMessageDialog(self, f"Saved: {saved}, errors: {errors}", style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+
+        if not error_cats:
+            editor.ClearModifiedStatus()
+        return
+
     # wxPython events
 
     def onDevicePickerChoice(self, event):
         self.selected_device = self.device_picker.GetString(event.GetSelection())
-        self._reload_mc_grid(shared.connected_interfaces[self.selected_device])
-        self._reload_lc_grid(shared.connected_interfaces[self.selected_device])
+        self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
+        self._reload_mc_grid()
+        self._reload_lc_grid()
 
     # noinspection PyUnusedLocal
     def onLCReloadButton(self, event):
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the device configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
-            self._reload_lc_grid(shared.connected_interfaces[self.selected_device])
+            self._reload_lc_grid()
             wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="Device configuration reloaded"))
 
+    # noinspection PyUnusedLocal
     def onLCSaveButton(self, event):
-        pass
-        # *** Copy changed values to radio then write config
+        changed_cats = self._get_changed_categories(self.lc_config_editor, self.this_node.localConfig)
+        if changed_cats:
+            self._save_changed_categories(changed_cats, self.lc_config_editor)
+        else:  # No changed categories
+            wx.RichMessageDialog(self, "No changes made", style=wx.OK | wx.ICON_INFORMATION).ShowModal()
 
     # noinspection PyUnusedLocal
     def onMCReloadButton(self, event):
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the module configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
-            self._reload_mc_grid(shared.connected_interfaces[self.selected_device])
+            self._reload_mc_grid()
             wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="Module configuration reloaded"))
 
+    # noinspection PyUnusedLocal
+    # *** WHY does this hang on the second string modification?
     def onMCSaveButton(self, event):
-        pass
-        # *** Copy changed values to radio then write config
+        changed_cats = self._get_changed_categories(self.mc_config_editor, self.this_node.moduleConfig)
+        if changed_cats:
+            self._save_changed_categories(changed_cats, self.mc_config_editor)
+        else:  # No changed categories
+            wx.RichMessageDialog(self, "No changes made", style=wx.OK | wx.ICON_INFORMATION).ShowModal()
 
     def add_device_event(self, event):
         device_name = event.name
@@ -196,9 +246,10 @@ class DevConfigPanel(wx.Panel):
         self.device_picker.Append(device_name)
         if self.device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
+            self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
             self.device_picker.Select(0)
-            self._reload_mc_grid(shared.connected_interfaces[self.selected_device])
-            self._reload_lc_grid(shared.connected_interfaces[self.selected_device])
+            self._reload_mc_grid()
+            self._reload_lc_grid()
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
