@@ -2,7 +2,7 @@ import wx
 import wx.propgrid as wxpg
 
 import shared
-from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect
+from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect, EVT_REMOVE_DEVICE
 
 
 class DevConfigPanel(wx.Panel):
@@ -53,6 +53,7 @@ class DevConfigPanel(wx.Panel):
 
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
+        self.Bind(EVT_REMOVE_DEVICE, self.remove_device_event)
 
     def _reload_lc_grid(self):
         if not self.selected_device or not self.this_node:
@@ -262,6 +263,17 @@ class DevConfigPanel(wx.Panel):
             self.device_picker.Select(0)
             self._reload_mc_grid()
             self._reload_lc_grid()
+
+    def remove_device_event(self, event):
+        device_name = event.name
+
+        index = self.device_picker.FindString(device_name)
+        if index != wx.NOT_FOUND:
+            self.device_picker.Delete(index)
+        if self.selected_device == device_name:
+            self.selected_device = None
+            self.lc_config_editor.Clear()
+            self.mc_config_editor.Clear()
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):

@@ -150,7 +150,6 @@ class MainFrame(wx.Frame):
     def fake_device_disconnect(self, event):
         # If a device disconnection isn't likely to go through the pub/sub topic, fake it here
         wx.PostEvent(self.panel_pointers["devices"], fake_device_disconnect(name=event.name, interface=event.interface))
-        # TODO: Implement remove_device on all of these panels:
         wx.PostEvent(self.panel_pointers["chm"], remove_device(name=event.name, interface=event.interface))
         wx.PostEvent(self.panel_pointers["dm"], remove_device(name=event.name, interface=event.interface))
         wx.PostEvent(self.panel_pointers["node"], remove_device(name=event.name, interface=event.interface))

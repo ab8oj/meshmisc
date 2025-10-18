@@ -3,7 +3,7 @@ from datetime import datetime
 
 import shared
 from gui_events import (EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED, EVT_CHILD_CLOSED,
-                        EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel)
+                        EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel, EVT_REMOVE_DEVICE)
 from panels.node_convo_frame import NodeConvoFrame
 
 
@@ -65,6 +65,7 @@ class NodesPanel(wx.Panel):
 
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
+        self.Bind(EVT_REMOVE_DEVICE, self.remove_device_event)
         self.Bind(EVT_NODE_UPDATED, self.receive_node_event)
         self.Bind(EVT_CHILD_CLOSED, self.child_closed_event)
         self.Bind(EVT_PROCESS_RECEIVED_MESSAGE, self.receive_message_event)
@@ -174,6 +175,7 @@ class NodesPanel(wx.Panel):
         for child in self.active_subpanels:
             wx.PostEvent(child, refresh_panel())
 
+    # noinspection PyUnusedLocal
     def add_device_event(self, evt):
         device_name = evt.name
         interface = evt.interface
@@ -184,6 +186,17 @@ class NodesPanel(wx.Panel):
         if self.msg_device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
             self.msg_device_picker.Select(0)
+
+    def remove_device_event(self, evt):
+        device_name = evt.name
+
+        index = self.msg_device_picker.FindString(device_name)
+        if index != wx.NOT_FOUND:
+            self.msg_device_picker.Delete(index)
+        if self.selected_device == device_name:
+            self.selected_device = None
+            self.node_list.DeleteAllItems()
+            self._clear_node_info()
 
     # noinspection PyUnusedLocal
     def receive_node_event(self, event):

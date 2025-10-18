@@ -5,7 +5,7 @@ from ObjectListView3 import ObjectListView, ColumnDefn
 
 import shared
 from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_CHILD_CLOSED, refresh_panel, \
-    refresh_specific_panel
+    refresh_specific_panel, EVT_REMOVE_DEVICE
 from panels.node_convo_frame import NodeConvoFrame
 
 
@@ -56,6 +56,7 @@ class DirectMessagesPanel(wx.Panel):
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_PROCESS_RECEIVED_MESSAGE, self.receive_message_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
+        self.Bind(EVT_REMOVE_DEVICE, self.remove_device_event)
         self.Bind(EVT_CHILD_CLOSED, self.child_closed_event)
 
         self.active_subpanels = []  # List of active node conversation frames that will get refreshed on new messages
@@ -160,6 +161,16 @@ class DirectMessagesPanel(wx.Panel):
             self.messages.SetObjects(shared.direct_messages[device_name])
             if self.messages.GetItemCount() > 0:
                 self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
+
+    def remove_device_event(self, evt):
+        device_name = evt.name
+
+        index = self.msg_device_picker.FindString(device_name)
+        if index != wx.NOT_FOUND:
+            self.msg_device_picker.Delete(index)
+        if self.selected_device == device_name:
+            self.selected_device = None
+            self.messages.SetObjects([])
 
     def receive_message_event(self, event):
         device = event.device
