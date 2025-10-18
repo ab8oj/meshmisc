@@ -5,7 +5,8 @@ from pubsub import pub
 import shared
 from mesh_managers import DeviceManager
 from gui_events import (set_status_bar, EVT_REFRESH_PANEL,
-                        update_connection_status, EVT_UPDATE_CONNECTION_STATUS, announce_new_device)
+                        update_connection_status, EVT_UPDATE_CONNECTION_STATUS, announce_new_device,
+                        EVT_FAKE_DEVICE_DISCONNECT)
 
 
 class DevicesPanel(wx.Panel):
@@ -97,6 +98,7 @@ class DevicesPanel(wx.Panel):
         self.device_manager = DeviceManager()
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel)
         self.Bind(EVT_UPDATE_CONNECTION_STATUS, self.update_connection_status)
+        self.Bind(EVT_FAKE_DEVICE_DISCONNECT, self.fake_device_disconnect)
 
         # Non-GUI stuff
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
@@ -183,9 +185,17 @@ class DevicesPanel(wx.Panel):
         self.Layout()
         return
 
+    def fake_device_disconnect(self, event):
+        # Fake a device disconnection for cases where the pub/sub topic doesn't come through
+        event.status = "Disconnected"
+        self.update_connection_status(event)
+
+        index = self.device_list.FindItem(-1, event.name)
+        if index != -1 and self.device_list.IsSelected(index):
+            self._clear_device_info()
+
     # noinspection PyUnusedLocal
     def onDiscoverButton(self, event):
-        # TODO: Find a way to make a "busy note" work on Mac
         # TODO: preserve connection status for connected devices or don't allow rediscover if any are connected
         device_types = []
         if self.discover_ble.IsChecked():
@@ -301,9 +311,10 @@ class DevicesPanel(wx.Panel):
         return
 
     def onConnectionDown(self, interface):
-        # TODO: Turning off a BLE device doesn't seem to publish to this topic. Why?
-        # NOTE: Don't remove the interface object, so we can still reference things in it
+        # BLE devices in particular don't always report connection down when they disconnect
+        # NOTE: If you end up removing the interface, check to see if it exists first in case the kludge removed it
         short_name = interface.getShortName()
         wx.PostEvent(self, update_connection_status(name=short_name, status="Disconnected"))
         wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection lost to {short_name}"))
+        # TODO: See if this can use the same stuff as faking a down connection
         return

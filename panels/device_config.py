@@ -2,7 +2,7 @@ import wx
 import wx.propgrid as wxpg
 
 import shared
-from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL
+from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect
 
 
 class DevConfigPanel(wx.Panel):
@@ -55,7 +55,7 @@ class DevConfigPanel(wx.Panel):
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
 
     def _reload_lc_grid(self):
-        if not self.selected_device:
+        if not self.selected_device or not self.this_node:
             return  # Just in case
 
         self.lc_config_editor.Clear()
@@ -65,7 +65,7 @@ class DevConfigPanel(wx.Panel):
         return
 
     def _reload_mc_grid(self):
-        if not self.selected_device:
+        if not self.selected_device or not self.this_node:
             return  # Just in case
 
         self.mc_config_editor.Clear()
@@ -99,7 +99,7 @@ class DevConfigPanel(wx.Panel):
 
         # Determine the property and editor types
         if isinstance(value, bool):
-            prop= wxpg.BoolProperty(str(key), f"{category}_{str(key)}", value)
+            prop = wxpg.BoolProperty(str(key), f"{category}_{str(key)}", value)
             prop.SetEditor("CheckBox")
         elif isinstance(value, int):
             # If the protobuf says this is an enumerated type, get labels and values and make this an EnumProperty
@@ -111,10 +111,10 @@ class DevConfigPanel(wx.Panel):
                 prop = wxpg.IntProperty(str(key), f"{category}_{str(key)}", value)
                 prop.SetEditor("TextCtrl")
         elif isinstance(value, str):
-                prop = wxpg.StringProperty(str(key), f"{category}_{str(key)}", str(value))
-                prop.SetEditor("TextCtrl")
+            prop = wxpg.StringProperty(str(key), f"{category}_{str(key)}", str(value))
+            prop.SetEditor("TextCtrl")
         else:  # A new one on us, make it a string for now
-            prop = wxpg.StringProperty(str(key), f"{category}_{str(key)}", str(value))# default to simple string
+            prop = wxpg.StringProperty(str(key), f"{category}_{str(key)}", str(value))  # default to simple string
             prop.SetEditor("TextCtrl")
 
         # Add the setting to the propertygrid
@@ -173,16 +173,17 @@ class DevConfigPanel(wx.Panel):
         saved_cats = []
         error_cats = []
 
+        self.this_node.beginSettingsTransaction()
         for cat in changed_cats:
             # noinspection PyBroadException
             try:
-                # TODO: BUG: altering the same string parameter twice causes writeConfig to hang
                 self.this_node.writeConfig(cat)
             except Exception:
                 # TODO: Log the exception when logging is implemented
                 error_cats.append(cat)
             else:
                 saved_cats.append(cat)
+        self.this_node.commitSettingsTransaction()
 
         if saved_cats:
             saved = ", ".join(saved_cats)
@@ -192,10 +193,19 @@ class DevConfigPanel(wx.Panel):
             errors = ", ".join(error_cats)
         else:
             errors = "None"
-        wx.RichMessageDialog(self, f"Saved: {saved}, errors: {errors}", style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+        wx.RichMessageDialog(self, f"Saved: {saved}, errors: {errors} \nGo to Devices panel to reconnect",
+                             style=wx.OK | wx.ICON_INFORMATION).ShowModal()
 
         if not error_cats:
             editor.ClearModifiedStatus()
+
+        # Assume the node had to reboot, even though it might not be true in all cases.
+        # BLE devices in particular do not trigger the connection down topic, so kludge that.
+        wx.PostEvent(self.GetTopLevelParent(),
+                     fake_device_disconnect(name=self.selected_device,
+                                            interface=shared.connected_interfaces[self.selected_device]))
+        self.this_node = None
+
         return
 
     # wxPython events
@@ -205,6 +215,8 @@ class DevConfigPanel(wx.Panel):
         self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
         self._reload_mc_grid()
         self._reload_lc_grid()
+
+    # TODO: Add event handler for device being deselected
 
     # noinspection PyUnusedLocal
     def onLCReloadButton(self, event):
