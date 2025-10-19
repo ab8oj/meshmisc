@@ -20,7 +20,51 @@ class DevConfigPanel(wx.Panel):
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
         sizer.Add(self.device_picker, 0)
 
-        sizer.Add(wx.StaticText(self, wx.ID_ANY, "Device Configuration"), 0, wx.CENTER)
+        sizer.Add(wx.StaticText(self, wx.ID_ANY, "User configuration"), 0)
+        user_button_box = wx.BoxSizer(wx.HORIZONTAL)
+        user_reload_button = wx.Button(self, wx.ID_ANY, label="Reload")
+        user_button_box.Add(user_reload_button, 0)
+        user_save_button = wx.Button(self, wx.ID_ANY, label="Save")
+        # self.Bind(wx.EVT_BUTTON, self.onUserReloadButton, user_reload_button)
+        # self.Bind(wx.EVT_BUTTON, self.onUserSaveButton, user_save_button)
+        user_button_box.Add(user_save_button, 0)
+        sizer.Add(user_button_box, 0)
+        self.user_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
+        sizer.Add(self.user_config_editor, 1, wx.EXPAND)
+
+        """
+        Add channel button:  this might be worth enumerating the fields like other config windows
+        - Name
+        - Key size
+        - Key
+        - Role: (get choices the usual way, try the object's methods before digging into the descriptor)
+        - Allow position requests, uplink enabled, downlink enabled (Booleans)
+        """
+
+        sizer.Add(wx.StaticText(self, wx.ID_ANY, "Channel Configuration"), 0)
+        chan_button_box = wx.BoxSizer(wx.HORIZONTAL)
+        chan_add_button = wx.Button(self, label="Add Channel")
+        chan_button_box.Add(chan_add_button, 0)
+        self.chan_edit_button = wx.Button(self, label="Edit Channel")
+        self.chan_edit_button.Disable()
+        chan_button_box.Add(self.chan_edit_button, 0)
+        self.chan_delete_button = wx.Button(self, label="Delete Channel")
+        self.chan_delete_button.Disable()
+        chan_button_box.Add(self.chan_delete_button, 0)
+        # self.Bind(wx.EVT_BUTTON, self.onChanAddButton, chan_add_button)
+        # self.Bind(wx.EVT_BUTTON, self.onChanEditButton, self.chan_edit_button)
+        # self.Bind(wx.EVT_BUTTON, self.onChanDeleteButton, self.chan_delete_button)
+        sizer.Add(chan_button_box, 0)
+        self.channel_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
+        self.channel_list.SetMinSize(wx.Size(-1, 100))
+        self.channel_list.SetMaxSize(wx.Size(-1, 150))  # May want to adjust max size later
+        self.channel_list.InsertColumn(0, '#', width=20)
+        self.channel_list.InsertColumn(1, 'Name', width=300)
+        # self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onChannelSelected, self.channel_list)
+        # self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onChannelDeselected, self.channel_list)
+        sizer.Add(self.channel_list, 1)
+
+        sizer.Add(wx.StaticText(self, wx.ID_ANY, "Device Configuration"), 0)
         lc_button_box = wx.BoxSizer(wx.HORIZONTAL)
         lc_reload_button = wx.Button(self, label="Reload")
         lc_button_box.Add(lc_reload_button, 0)
@@ -28,11 +72,11 @@ class DevConfigPanel(wx.Panel):
         lc_button_box.Add(lc_save_button, 0)
         self.Bind(wx.EVT_BUTTON, self.onLCReloadButton, lc_reload_button)
         self.Bind(wx.EVT_BUTTON, self.onLCSaveButton, lc_save_button)
-        sizer.Add(lc_button_box, 0, wx.CENTER)
+        sizer.Add(lc_button_box, 0)
         self.lc_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         sizer.Add(self.lc_config_editor, 1, wx.EXPAND)
 
-        sizer.Add(wx.StaticText(self, wx.ID_ANY, "Module Configuration"), 0, wx.CENTER)
+        sizer.Add(wx.StaticText(self, wx.ID_ANY, "Module Configuration"), 0)
         mc_button_box = wx.BoxSizer(wx.HORIZONTAL)
         mc_reload_button = wx.Button(self, label="Reload")
         mc_button_box.Add(mc_reload_button, 0)
@@ -40,7 +84,7 @@ class DevConfigPanel(wx.Panel):
         mc_button_box.Add(mc_save_button, 0)
         self.Bind(wx.EVT_BUTTON, self.onMCReloadButton, mc_reload_button)
         self.Bind(wx.EVT_BUTTON, self.onMCSaveButton, mc_save_button)
-        sizer.Add(mc_button_box, 0, wx.CENTER)
+        sizer.Add(mc_button_box, 0)
         self.mc_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         sizer.Add(self.mc_config_editor, 1, wx.EXPAND)
 
@@ -244,7 +288,6 @@ class DevConfigPanel(wx.Panel):
             wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="Module configuration reloaded"))
 
     # noinspection PyUnusedLocal
-    # *** WHY does this hang on the second string modification?
     def onMCSaveButton(self, event):
         changed_cats = self._get_changed_categories(self.mc_config_editor, self.this_node.moduleConfig)
         if changed_cats:
@@ -261,6 +304,7 @@ class DevConfigPanel(wx.Panel):
             self.selected_device = device_name
             self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
             self.device_picker.Select(0)
+            # self._load_channel_list
             self._reload_mc_grid()
             self._reload_lc_grid()
 
@@ -272,6 +316,7 @@ class DevConfigPanel(wx.Panel):
             self.device_picker.Delete(index)
         if self.selected_device == device_name:
             self.selected_device = None
+            self.channel_list.DeleteAllItems()
             self.lc_config_editor.Clear()
             self.mc_config_editor.Clear()
 
