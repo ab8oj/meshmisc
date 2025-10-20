@@ -25,11 +25,15 @@ class DevConfigPanel(wx.Panel):
         user_reload_button = wx.Button(self, wx.ID_ANY, label="Reload")
         user_button_box.Add(user_reload_button, 0)
         user_save_button = wx.Button(self, wx.ID_ANY, label="Save")
-        # self.Bind(wx.EVT_BUTTON, self.onUserReloadButton, user_reload_button)
-        # self.Bind(wx.EVT_BUTTON, self.onUserSaveButton, user_save_button)
+        self.Bind(wx.EVT_BUTTON, self.onUserReloadButton, user_reload_button)
+        self.Bind(wx.EVT_BUTTON, self.onUserSaveButton, user_save_button)
         user_button_box.Add(user_save_button, 0)
         sizer.Add(user_button_box, 0)
+        # Using a property grid for consistency, but the properties will be hardcoded
         self.user_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
+        self.user_config_editor.SetMinSize(wx.Size(-1, 75))
+        self.user_config_editor.SetMaxSize(wx.Size(-1, 75))
+        self.user_config_editor.SetInitialSize(wx.Size(-1, 75))
         sizer.Add(self.user_config_editor, 1, wx.EXPAND)
 
         """
@@ -98,6 +102,24 @@ class DevConfigPanel(wx.Panel):
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
         self.Bind(EVT_ADD_DEVICE, self.add_device_event)
         self.Bind(EVT_REMOVE_DEVICE, self.remove_device_event)
+
+    def _reload_user_grid(self):
+        if not self.selected_device or not self.this_node:
+            return  # Just in case
+
+        interface = shared.connected_interfaces[self.selected_device]
+        user_values = interface.getMyNodeInfo().get("user", {})
+        self.user_config_editor.Clear()
+        self.user_config_editor.Append(wxpg.StringProperty("Short name", "short_name", interface.getShortName()))
+        self.user_config_editor.Append(wxpg.StringProperty("Long name", "long_name", interface.getLongName()))
+        self.user_config_editor.Append(wxpg.BoolProperty("Licensed mode", "is_licensed",
+                                                         user_values.get("is_licensed", False)))
+        # TODO: Is is_unmessageable the right name?
+        self.user_config_editor.Append(wxpg.BoolProperty("Unmessageable", "is_unmessageable",
+                                                         user_values.get("is_unmessageable", False)))
+        self.SendSizeEvent()  # this is what it takes to get the user config editor to display w/o scroll bars
+
+        return
 
     def _reload_lc_grid(self):
         if not self.selected_device or not self.this_node:
@@ -258,10 +280,34 @@ class DevConfigPanel(wx.Panel):
     def onDevicePickerChoice(self, event):
         self.selected_device = self.device_picker.GetString(event.GetSelection())
         self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
+        self._reload_user_grid()
         self._reload_mc_grid()
         self._reload_lc_grid()
 
     # TODO: Add event handler for device being deselected
+
+    # noinspection PyUnusedLocal
+    def onUserReloadButton(self, event):
+        confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the user configuration?",
+                                       style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
+        if confirm.ShowModal() == wx.ID_OK:
+            self._reload_user_grid()
+            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text="User configuration reloaded"))
+
+    # noinspection PyUnusedLocal
+    def onUserSaveButton(self, event):
+        self.this_node.setOwner(self.user_config_editor.GetPropertyValueAsString("long_name"),
+                                self.user_config_editor.GetPropertyValueAsString("short_name"),
+                                self.user_config_editor.GetPropertyValue("is_licensed"),
+                                self.user_config_editor.GetPropertyValue("is_unmessageable"))
+        self.user_config_editor.ClearModifiedStatus()
+
+        wx.RichMessageDialog(self, f"Saved user configuration\nGo to Devices panel to reconnect",
+                             style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+        wx.PostEvent(self.GetTopLevelParent(),
+                     fake_device_disconnect(name=self.selected_device,
+                                            interface=shared.connected_interfaces[self.selected_device]))
+        self.this_node = None
 
     # noinspection PyUnusedLocal
     def onLCReloadButton(self, event):
@@ -304,6 +350,7 @@ class DevConfigPanel(wx.Panel):
             self.selected_device = device_name
             self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
             self.device_picker.Select(0)
+            self._reload_user_grid()
             # self._load_channel_list
             self._reload_mc_grid()
             self._reload_lc_grid()
@@ -316,6 +363,7 @@ class DevConfigPanel(wx.Panel):
             self.device_picker.Delete(index)
         if self.selected_device == device_name:
             self.selected_device = None
+            self.user_config_editor.Clear()
             self.channel_list.DeleteAllItems()
             self.lc_config_editor.Clear()
             self.mc_config_editor.Clear()
