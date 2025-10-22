@@ -39,33 +39,31 @@ class DevConfigPanel(wx.Panel):
         """
         Add channel button:  this might be worth enumerating the fields like other config windows
         - Name
-        - Key size
-        - Key
+        - Key size (does this have choices?)
+        - Key (probably need a generate button)
         - Role: (get choices the usual way, try the object's methods before digging into the descriptor)
         - Allow position requests, uplink enabled, downlink enabled (Booleans)
         """
 
         sizer.Add(wx.StaticText(self, wx.ID_ANY, "Channel Configuration"), 0)
         chan_button_box = wx.BoxSizer(wx.HORIZONTAL)
-        chan_add_button = wx.Button(self, label="Add Channel")
-        chan_button_box.Add(chan_add_button, 0)
         self.chan_edit_button = wx.Button(self, label="Edit Channel")
         self.chan_edit_button.Disable()
         chan_button_box.Add(self.chan_edit_button, 0)
         self.chan_delete_button = wx.Button(self, label="Delete Channel")
         self.chan_delete_button.Disable()
         chan_button_box.Add(self.chan_delete_button, 0)
-        # self.Bind(wx.EVT_BUTTON, self.onChanAddButton, chan_add_button)
-        # self.Bind(wx.EVT_BUTTON, self.onChanEditButton, self.chan_edit_button)
-        # self.Bind(wx.EVT_BUTTON, self.onChanDeleteButton, self.chan_delete_button)
+        self.Bind(wx.EVT_BUTTON, self.onChanEditButton, self.chan_edit_button)
+        self.Bind(wx.EVT_BUTTON, self.onChanDeleteButton, self.chan_delete_button)
         sizer.Add(chan_button_box, 0)
         self.channel_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         self.channel_list.SetMinSize(wx.Size(-1, 100))
         self.channel_list.SetMaxSize(wx.Size(-1, 150))  # May want to adjust max size later
         self.channel_list.InsertColumn(0, '#', width=20)
-        self.channel_list.InsertColumn(1, 'Name', width=300)
-        # self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onChannelSelected, self.channel_list)
-        # self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onChannelDeselected, self.channel_list)
+        self.channel_list.InsertColumn(1, 'Role', width=120)
+        self.channel_list.InsertColumn(2, 'Name', width=300)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onChannelSelected, self.channel_list)
+        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onChannelDeselected, self.channel_list)
         sizer.Add(self.channel_list, 1)
 
         sizer.Add(wx.StaticText(self, wx.ID_ANY, "Device Configuration"), 0)
@@ -118,6 +116,16 @@ class DevConfigPanel(wx.Panel):
         self.user_config_editor.Append(wxpg.BoolProperty("Unmessageable", "is_unmessageable",
                                                          user_values.get("is_unmessageable", False)))
         self.SendSizeEvent()  # this is what it takes to get the user config editor to display w/o scroll bars
+
+        return
+
+    def _load_channel_list(self):
+        if not self.selected_device or not self.this_node:
+            return
+
+        self.channel_list.DeleteAllItems()
+        for chan in self.this_node.channels:
+            self.channel_list.Append((chan.index, shared.channel_roles[chan.role], chan.settings.name))
 
         return
 
@@ -280,11 +288,31 @@ class DevConfigPanel(wx.Panel):
     def onDevicePickerChoice(self, event):
         self.selected_device = self.device_picker.GetString(event.GetSelection())
         self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
+        self._load_channel_list()
         self._reload_user_grid()
         self._reload_mc_grid()
         self._reload_lc_grid()
 
     # TODO: Add event handler for device being deselected
+
+    # noinspection PyUnusedLocal
+    def onChannelSelected(self, event):
+        self.chan_edit_button.Enable(True)
+        self.chan_delete_button.Enable(True)
+
+    # noinspection PyUnusedLocal
+    def onChannelDeselected(self, event):
+        self.chan_edit_button.Disable()
+        self.chan_delete_button.Disable()
+
+    # noinspection PyUnusedLocal
+    def onChanEditButton(self, event):
+        # TODO: Only allow editing of the first disabled channel
+        pass
+
+    # noinspection PyUnusedLocal
+    def onChanDeleteButton(self, event):
+        pass
 
     # noinspection PyUnusedLocal
     def onUserReloadButton(self, event):
@@ -351,7 +379,7 @@ class DevConfigPanel(wx.Panel):
             self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
             self.device_picker.Select(0)
             self._reload_user_grid()
-            # self._load_channel_list
+            self._load_channel_list()
             self._reload_mc_grid()
             self._reload_lc_grid()
 

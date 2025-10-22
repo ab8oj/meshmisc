@@ -75,3 +75,6 @@ node_database = {}
     }
 }
 """
+
+# Channel roles: channel_roles[integer_role_value] is the string value of the role
+channel_roles = ["DISABLED", "PRIMAARY", "SECONDARY"]
