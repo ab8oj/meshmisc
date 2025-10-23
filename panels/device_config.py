@@ -3,6 +3,7 @@ import wx.propgrid as wxpg
 
 import shared
 from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect, EVT_REMOVE_DEVICE
+from panels.channel_edit import ChannelEdit
 
 
 class DevConfigPanel(wx.Panel):
@@ -35,30 +36,6 @@ class DevConfigPanel(wx.Panel):
         self.user_config_editor.SetMaxSize(wx.Size(-1, 75))
         self.user_config_editor.SetInitialSize(wx.Size(-1, 75))
         sizer.Add(self.user_config_editor, 1, wx.EXPAND)
-
-        """
-        Editing a channel:
-        - Name
-            - .settings.name
-        - Role (choice populated with shared.channel_roles values)
-            - .role
-        - Key size and button to generate a key
-            - Must be either 0 bytes (no crypto), 16 bytes (AES128), or 32 bytes (AES256)
-        - Key (holds either generated key or one pasted in)
-            - .settings.psk
-        - Allow position requests, uplink enabled, downlink enabled (Booleans)
-            - .settings: 'downlink_enabled', 'uplink_enabled', not sure about allow position requests
-                - maybe allow position requests sets position precision to 0? Probably
-            - .settings.module_settings: 'position_precision'
-                - see https://meshtastic.org/docs/configuration/radio/channels/ for position precision info
-                - not sure what happens for "in between" values that are not in the table
-                - also see the "CLI" section near the bottom of the page, that talks about setting psk from the cli
-                    - look at the CLI source code to see how it gets from base64 to the stored value
-        - is_client_muted in settings.module_settings is to mute a channel
-        
-        How do I get the key value to and from what's in the attribute?
-            e.g. visible key = AQ==, psk value is "\001"
-        """
 
         sizer.Add(wx.StaticText(self, wx.ID_ANY, "Channel Configuration"), 0)
         chan_button_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -323,10 +300,15 @@ class DevConfigPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onChanEditButton(self, event):
         # TODO: Only allow editing of the first disabled channel
-        pass
+        # TODO: pass the index of the channel
+        edit_dialog = ChannelEdit(self)
+        edit_dialog.ShowModal()
+        self._load_channel_list()
 
     # noinspection PyUnusedLocal
     def onChanDeleteButton(self, event):
+        # TODO: What happens when you delete a channel in the middle of others?
+        # TODO: reload channel list after this
         pass
 
     # noinspection PyUnusedLocal
