@@ -37,12 +37,27 @@ class DevConfigPanel(wx.Panel):
         sizer.Add(self.user_config_editor, 1, wx.EXPAND)
 
         """
-        Add channel button:  this might be worth enumerating the fields like other config windows
+        Editing a channel:
         - Name
-        - Key size (does this have choices?)
-        - Key (probably need a generate button)
-        - Role: (get choices the usual way, try the object's methods before digging into the descriptor)
+            - .settings.name
+        - Role (choice populated with shared.channel_roles values)
+            - .role
+        - Key size and button to generate a key
+            - Must be either 0 bytes (no crypto), 16 bytes (AES128), or 32 bytes (AES256)
+        - Key (holds either generated key or one pasted in)
+            - .settings.psk
         - Allow position requests, uplink enabled, downlink enabled (Booleans)
+            - .settings: 'downlink_enabled', 'uplink_enabled', not sure about allow position requests
+                - maybe allow position requests sets position precision to 0? Probably
+            - .settings.module_settings: 'position_precision'
+                - see https://meshtastic.org/docs/configuration/radio/channels/ for position precision info
+                - not sure what happens for "in between" values that are not in the table
+                - also see the "CLI" section near the bottom of the page, that talks about setting psk from the cli
+                    - look at the CLI source code to see how it gets from base64 to the stored value
+        - is_client_muted in settings.module_settings is to mute a channel
+        
+        How do I get the key value to and from what's in the attribute?
+            e.g. visible key = AQ==, psk value is "\001"
         """
 
         sizer.Add(wx.StaticText(self, wx.ID_ANY, "Channel Configuration"), 0)
@@ -57,10 +72,10 @@ class DevConfigPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.onChanDeleteButton, self.chan_delete_button)
         sizer.Add(chan_button_box, 0)
         self.channel_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
-        self.channel_list.SetMinSize(wx.Size(-1, 100))
-        self.channel_list.SetMaxSize(wx.Size(-1, 150))  # May want to adjust max size later
+        self.channel_list.SetMinSize(wx.Size(430, 100))
+        self.channel_list.SetMaxSize(wx.Size(430, 150))  # May want to adjust max size later
         self.channel_list.InsertColumn(0, '#', width=20)
-        self.channel_list.InsertColumn(1, 'Role', width=120)
+        self.channel_list.InsertColumn(1, 'Role', width=110)
         self.channel_list.InsertColumn(2, 'Name', width=300)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onChannelSelected, self.channel_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onChannelDeselected, self.channel_list)
