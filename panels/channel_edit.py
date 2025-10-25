@@ -1,4 +1,5 @@
 import base64
+import os
 
 import wx
 
@@ -6,17 +7,20 @@ import shared
 
 
 class ChannelEdit(wx.Dialog):
-    def __init__(self, parent, channel_info):
+    def __init__(self, parent, channel_info, channel_index, this_node):
         super().__init__(parent=parent)
         self.channel_info = channel_info
+        self.channel_index = channel_index
+        self.this_node = this_node
         window_margin_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         name_box = wx.BoxSizer(wx.HORIZONTAL)
         name_box.Add(wx.StaticText(self, wx.ID_ANY, "Name"))
-        self.channel_name = wx.TextCtrl(self, wx.ID_ANY, "")
+        self.channel_name = wx.TextCtrl(self, wx.ID_ANY, "", size=wx.Size(300, -1))
         name_box.Add(self.channel_name, 1, wx.EXPAND)
         sizer.Add(name_box, 0, wx.EXPAND | wx.BOTTOM, 5)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM, 5)
 
         role_box = wx.BoxSizer(wx.HORIZONTAL)
         role_box.Add(wx.StaticText(self, wx.ID_ANY, "Role"))
@@ -25,27 +29,17 @@ class ChannelEdit(wx.Dialog):
         sizer.Add(role_box, 0, wx.BOTTOM, 5)
         self.mute = wx.CheckBox(self, wx.ID_ANY, "Mute this channel")
         sizer.Add(self.mute, 0, wx.BOTTOM, 10)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM, 5)
 
         key_box = wx.BoxSizer(wx.HORIZONTAL)
         key_box.Add(wx.StaticText(self, wx.ID_ANY, "Key"))
-        self.key = wx.TextCtrl(self, wx.ID_ANY, "")
+        self.key = wx.TextCtrl(self, wx.ID_ANY, "", size=wx.Size(300, -1))
         key_box.Add(self.key, 1, wx.EXPAND)
         sizer.Add(key_box, 0, wx.EXPAND | wx.BOTTOM, 5)
-
-        key_gen_box = wx.BoxSizer(wx.HORIZONTAL)
-        self.enable_encryption = wx.CheckBox(self, wx.ID_ANY, "Enable encryption")
-        self.enable_encryption.SetValue(True)  # Default if creating a new channel
-        self.Bind(wx.EVT_CHECKBOX, self.onEnableEncryptionChange, self.enable_encryption)
-        # TODO: If this is unchecked then disable key gen button, if checked then enable it
-        key_gen_box.Add(self.enable_encryption, 0)
-        self.key_gen_button = wx.Button(self, wx.ID_ANY, "Generate")
-        self.Bind(wx.EVT_BUTTON, self.onKeyGenButton, self.key_gen_button)
-        key_gen_box.Add(self.key_gen_button)
-        key_gen_box.Add(wx.StaticText(self, wx.ID_ANY, "Key size"))
-        self.key_size = wx.Choice(self, wx.ID_ANY, choices=["128", "256"])
-        self.key_size.SetSelection(0)
-        key_gen_box.Add(self.key_size)
-        sizer.Add(key_gen_box, 0, wx.BOTTOM, 10)
+        key_gen_button = wx.Button(self, wx.ID_ANY, "Generate random key")
+        self.Bind(wx.EVT_BUTTON, self.onKeyGenButton, key_gen_button)
+        sizer.Add(key_gen_button, 0, wx.BOTTOM, 5)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM, 5)
 
         mqtt_box = wx.BoxSizer(wx.HORIZONTAL)
         self.mqtt_uplink_enabled = wx.CheckBox(self, wx.ID_ANY, "MQTT Uplink")
@@ -53,6 +47,7 @@ class ChannelEdit(wx.Dialog):
         self.mqtt_downlink_enabled = wx.CheckBox(self, wx.ID_ANY, "MQTT Downlink")
         mqtt_box.Add(self.mqtt_downlink_enabled)
         sizer.Add(mqtt_box, 0, wx.BOTTOM, 10)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM, 5)
 
         self.pos_enabled = wx.CheckBox(self, wx.ID_ANY, "Allow position requests")
         sizer.Add(self.pos_enabled, 0, wx.BOTTOM, 5)
@@ -61,6 +56,7 @@ class ChannelEdit(wx.Dialog):
         self.pos_precision = wx.SpinCtrl(self, wx.ID_ANY, min=1, max=32, initial=16)
         pos_box.Add(self.pos_precision)
         sizer.Add(pos_box, 0, wx.BOTTOM, 10)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM, 5)
 
         action_box = wx.BoxSizer(wx.HORIZONTAL)
         save_button = wx.Button(self, wx.ID_ANY, "Save")
@@ -73,9 +69,8 @@ class ChannelEdit(wx.Dialog):
 
         window_margin_sizer.Add(sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
 
-        self.SetSizer(window_margin_sizer)
+        self.SetSizerAndFit(window_margin_sizer)
         self.SetAutoLayout(True)
-        sizer.Fit(self)
 
         self._load_channel_info()
 
@@ -86,8 +81,7 @@ class ChannelEdit(wx.Dialog):
         role_string_index = self.channel_role.FindString(shared.channel_roles[self.channel_info.role])
         self.channel_role.SetSelection(role_string_index)
         self.mute.SetValue(self.channel_info.settings.module_settings.is_client_muted)
-        encoded_key = base64.b64encode(self.channel_info.settings.psk).decode('utf-8')
-        self.key.SetValue(encoded_key)
+        self.key.SetValue(base64.b64encode(self.channel_info.settings.psk).decode('utf-8'))
         self.mqtt_uplink_enabled.SetValue(self.channel_info.settings.uplink_enabled)
         self.mqtt_downlink_enabled.SetValue(self.channel_info.settings.downlink_enabled)
         if self.channel_info.settings.module_settings.position_precision == 0:
@@ -99,48 +93,33 @@ class ChannelEdit(wx.Dialog):
         self.pos_precision.SetValue(self.channel_info.settings.module_settings.position_precision)
         return
 
-    # TODO: When reading key from device, it will probably need to be translated to base64 for display
+    def _save_channel_info(self):
+        self.channel_info.settings.name = self.channel_name.GetValue()
+        # Don't assume the roles in the choice list are in the same order as in shared.channel_roles
+        role_string = self.channel_role.GetString(self.channel_role.GetSelection())
+        self.channel_info.role = shared.channel_roles.index(role_string)
+        self.channel_info.settings.module_settings.is_client_muted = self.mute.GetValue()
+        self.channel_info.settings.psk = base64.b64decode(self.key.GetValue().encode('utf-8'))
+        self.channel_info.settings.uplink_enabled = self.mqtt_uplink_enabled.GetValue()
+        self.channel_info.settings.downlink_enabled = self.mqtt_downlink_enabled.GetValue()
+        self.channel_info.settings.module_settings.position_precision = self.pos_precision.GetValue()
+
+        self.this_node.writeChannel(self.channel_index)
+        # TODO: Do we need to account for a reboot after doing this?
+
+        return
 
     # === wxPython events
 
     # noinspection PyUnusedLocal
-    def onEnableEncryptionChange(self, event):
-        new_value = self.enable_encryption.GetValue()
-        if new_value:
-            self.key_gen_button.Enable()
-        else:
-            self.key_gen_button.Disable()
-
     def onKeyGenButton(self, event):
-        pass
+        self.key.SetValue(base64.b64encode(os.urandom(32)).decode('utf-8'))
 
+    # noinspection PyUnusedLocal
     def onSaveButton(self, event):
-        pass
+        self._save_channel_info()
+        self.EndModal(wx.ID_OK)
 
+    # noinspection PyUnusedLocal
     def onCancelButton(self, event):
-        pass
-
-
-"""
-Editing a channel:
-- Name
-   - .settings.name
-- Role (choice populated with shared.channel_roles values)
-   - .role
-- Key size and button to generate a key
-   - Must be either 0 bytes (no crypto), 16 bytes (AES128), or 32 bytes (AES256)
-- Key (holds either generated key or one pasted in)
-   - .settings.psk
-- Allow position requests, uplink enabled, downlink enabled (Booleans)
-   - .settings: 'downlink_enabled', 'uplink_enabled', not sure about allow position requests
-       - maybe allow position requests sets position precision to 0? Probably
-   - .settings.module_settings: 'position_precision'
-       - see https://meshtastic.org/docs/configuration/radio/channels/ for position precision info
-       - not sure what happens for "in between" values that are not in the table
-       - also see the "CLI" section near the bottom of the page, that talks about setting psk from the cli
-           - look at the CLI source code to see how it gets from base64 to the stored value
-- is_client_muted in settings.module_settings is to mute a channel
-
-How do I get the key value to and from what's in the attribute?
-   e.g. visible key = AQ==, psk value is "\001"
-"""
+        self.EndModal(wx.ID_CANCEL)

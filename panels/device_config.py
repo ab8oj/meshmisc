@@ -301,15 +301,19 @@ class DevConfigPanel(wx.Panel):
     def onChanEditButton(self, event):
         # TODO: Only allow editing of the first disabled channel
         channel_index = self.channel_list.GetFirstSelected()
-        edit_dialog = ChannelEdit(self, self.this_node.channels[channel_index])
+        edit_dialog = ChannelEdit(self, self.this_node.channels[channel_index], channel_index, self.this_node)
         edit_dialog.ShowModal()
         self._load_channel_list()
 
     # noinspection PyUnusedLocal
     def onChanDeleteButton(self, event):
-        # TODO: What happens when you delete a channel in the middle of others?
-        # TODO: reload channel list after this
-        pass
+        channel_index = self.channel_list.GetFirstSelected()
+        channel_name = self.channel_list.GetItemText(channel_index, 2)
+        confirm = wx.RichMessageDialog(self, f"Are you sure you want to delete {channel_name}?",
+                                       style=wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        if confirm == wx.ID_OK:
+            self.this_node.deleteChannel(channel_index)
+            self._load_channel_list()
 
     # noinspection PyUnusedLocal
     def onUserReloadButton(self, event):
