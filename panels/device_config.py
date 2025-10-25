@@ -300,8 +300,8 @@ class DevConfigPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onChanEditButton(self, event):
         # TODO: Only allow editing of the first disabled channel
-        # TODO: pass the index of the channel
-        edit_dialog = ChannelEdit(self)
+        channel_index = self.channel_list.GetFirstSelected()
+        edit_dialog = ChannelEdit(self, self.this_node.channels[channel_index])
         edit_dialog.ShowModal()
         self._load_channel_list()
 
