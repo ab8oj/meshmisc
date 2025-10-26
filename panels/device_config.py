@@ -2,7 +2,8 @@ import wx
 import wx.propgrid as wxpg
 
 import shared
-from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect, EVT_REMOVE_DEVICE
+from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect, EVT_REMOVE_DEVICE, \
+    disconnect_device
 from panels.channel_edit import ChannelEdit
 
 
@@ -302,8 +303,15 @@ class DevConfigPanel(wx.Panel):
         # TODO: Only allow editing of the first disabled channel
         channel_index = self.channel_list.GetFirstSelected()
         edit_dialog = ChannelEdit(self, self.this_node.channels[channel_index], channel_index, self.this_node)
-        edit_dialog.ShowModal()
-        self._load_channel_list()
+        if edit_dialog.ShowModal() == wx.ID_OK:
+            # Channel info was saved. We need a clean close() for the device to actually take the change
+            # Send an event to close the device
+            wx.RichMessageDialog(self, "Disconnecting device to finish saving new channel information\n"
+                                       "Go to the devices panel to reconnect",
+                                 style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+            # wx.PostEvent(self.GetTopLevelParent(), disconnect_device(name=self.selected_device))
+            # *** Just do a direct close to see if it works
+            # shared.connected_interfaces[self.selected_device].close()
 
     # noinspection PyUnusedLocal
     def onChanDeleteButton(self, event):

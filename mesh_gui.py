@@ -14,7 +14,8 @@ from panels.nodes import NodesPanel
 from panels.channel_messages import ChannelMessagesPanel
 from panels.direct_messages import DirectMessagesPanel
 from gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANNOUNCE_NEW_DEVICE, add_device, node_updated, \
-    refresh_panel, EVT_REFRESH_SPECIFIC_PANEL, EVT_FAKE_DEVICE_DISCONNECT, remove_device, fake_device_disconnect
+    refresh_panel, EVT_REFRESH_SPECIFIC_PANEL, EVT_FAKE_DEVICE_DISCONNECT, remove_device, fake_device_disconnect, \
+    EVT_DISCONNECT_DEVICE, disconnect_device
 
 
 # TODO: Implement logging
@@ -81,6 +82,7 @@ class MainFrame(wx.Frame):
         self.Bind(EVT_ANNOUNCE_NEW_DEVICE, self.announceNewDevice)
         self.Bind(EVT_REFRESH_SPECIFIC_PANEL, self.refreshSpecifcPanel)
         self.Bind(EVT_FAKE_DEVICE_DISCONNECT, self.fake_device_disconnect)
+        self.Bind(EVT_DISCONNECT_DEVICE, self.reflect_device_disconnect_to_device_panel)
 
         return
 
@@ -154,6 +156,10 @@ class MainFrame(wx.Frame):
         wx.PostEvent(self.panel_pointers["dm"], remove_device(name=event.name, interface=event.interface))
         wx.PostEvent(self.panel_pointers["node"], remove_device(name=event.name, interface=event.interface))
         wx.PostEvent(self.panel_pointers["devconfig"], remove_device(name=event.name, interface=event.interface))
+
+    def reflect_device_disconnect_to_device_panel(self, event):
+        # A panel needs a device to be disconnected. Send that on to the devices panel
+        wx.PostEvent(self.panel_pointers["devices"], disconnect_device(name=event.name))
 
     def refreshSpecifcPanel(self, event):
         panel_name = event.panel_name

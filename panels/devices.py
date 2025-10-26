@@ -6,7 +6,7 @@ import shared
 from mesh_managers import DeviceManager
 from gui_events import (set_status_bar, EVT_REFRESH_PANEL,
                         update_connection_status, EVT_UPDATE_CONNECTION_STATUS, announce_new_device,
-                        EVT_FAKE_DEVICE_DISCONNECT)
+                        EVT_FAKE_DEVICE_DISCONNECT, EVT_DISCONNECT_DEVICE)
 
 
 class DevicesPanel(wx.Panel):
@@ -99,6 +99,7 @@ class DevicesPanel(wx.Panel):
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel)
         self.Bind(EVT_UPDATE_CONNECTION_STATUS, self.update_connection_status)
         self.Bind(EVT_FAKE_DEVICE_DISCONNECT, self.fake_device_disconnect)
+        self.Bind(EVT_DISCONNECT_DEVICE, self.disconnect_device)
 
         # Non-GUI stuff
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
@@ -193,6 +194,23 @@ class DevicesPanel(wx.Panel):
         index = self.device_list.FindItem(-1, event.name)
         if index != -1 and self.device_list.IsSelected(index):
             self._clear_device_info()
+
+    def disconnect_device(self, event):
+        event.status = "Disconnected"
+        self.update_connection_status(event)
+
+        index = self.device_list.FindItem(-1, event.name)
+        if index != -1:
+            if self.device_list.IsSelected(index):
+                self._clear_device_info()
+            dev_type = self.device_list.GetItemText(index, 2)
+            if dev_type == "ble":
+                wx.RichMessageDialog(self, "WARNING: BLE device disconnects hang on some platforms, "
+                                           "force-quit the application if the disconnect hangs",
+                                     style=wx.ICON_WARNING | wx.OK).ShowModal()
+
+        shared.connected_interfaces[event.name].close()
+        shared.connected_interfaces.pop(event.name, None)
 
     # noinspection PyUnusedLocal
     def onDiscoverButton(self, event):

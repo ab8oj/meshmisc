@@ -17,8 +17,8 @@ class ChannelEdit(wx.Dialog):
 
         name_box = wx.BoxSizer(wx.HORIZONTAL)
         name_box.Add(wx.StaticText(self, wx.ID_ANY, "Name"))
-        self.channel_name = wx.TextCtrl(self, wx.ID_ANY, "", size=wx.Size(300, -1))
-        name_box.Add(self.channel_name, 1, wx.EXPAND)
+        self.channel_name = wx.TextCtrl(self, wx.ID_ANY, "", size=wx.Size(350, -1))
+        name_box.Add(self.channel_name, 0)
         sizer.Add(name_box, 0, wx.EXPAND | wx.BOTTOM, 5)
         sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM, 5)
 
@@ -33,8 +33,8 @@ class ChannelEdit(wx.Dialog):
 
         key_box = wx.BoxSizer(wx.HORIZONTAL)
         key_box.Add(wx.StaticText(self, wx.ID_ANY, "Key"))
-        self.key = wx.TextCtrl(self, wx.ID_ANY, "", size=wx.Size(300, -1))
-        key_box.Add(self.key, 1, wx.EXPAND)
+        self.key = wx.TextCtrl(self, wx.ID_ANY, "", size=wx.Size(400, -1))
+        key_box.Add(self.key, 0)
         sizer.Add(key_box, 0, wx.EXPAND | wx.BOTTOM, 5)
         key_gen_button = wx.Button(self, wx.ID_ANY, "Generate random key")
         self.Bind(wx.EVT_BUTTON, self.onKeyGenButton, key_gen_button)
@@ -105,7 +105,6 @@ class ChannelEdit(wx.Dialog):
         self.channel_info.settings.module_settings.position_precision = self.pos_precision.GetValue()
 
         self.this_node.writeChannel(self.channel_index)
-        # TODO: Do we need to account for a reboot after doing this?
 
         return
 
