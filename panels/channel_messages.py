@@ -136,6 +136,12 @@ class ChannelMessagesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
+        # Repopulate channel list, in case channels were edited
+        if self.selected_device:
+            channel_list = shared.connected_interfaces[self.selected_device].localNode.channels
+            for chan in channel_list:
+                if chan.role != 0:
+                    self.msg_channel_list.Append((chan.index, chan.settings.name))
         self.Layout()
 
     def add_device_event(self, evt):

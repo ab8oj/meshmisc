@@ -7,11 +7,12 @@ import shared
 
 
 class ChannelEdit(wx.Dialog):
-    def __init__(self, parent, channel_info, channel_index, this_node):
+    def __init__(self, parent, channel_info, channel_index, this_node, device_name):
         super().__init__(parent=parent)
         self.channel_info = channel_info
         self.channel_index = channel_index
         self.this_node = this_node
+        self.device_name = device_name
         window_margin_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -50,6 +51,7 @@ class ChannelEdit(wx.Dialog):
         sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM, 5)
 
         self.pos_enabled = wx.CheckBox(self, wx.ID_ANY, "Allow position requests")
+        self.Bind(wx.EVT_CHECKBOX, self.onPosEnabledCheckbox, self.pos_enabled)
         sizer.Add(self.pos_enabled, 0, wx.BOTTOM, 5)
         pos_box = wx.BoxSizer(wx.HORIZONTAL)
         pos_box.Add(wx.StaticText(self, wx.ID_ANY, "Position precision (bits, 1-32)"))
@@ -78,6 +80,7 @@ class ChannelEdit(wx.Dialog):
 
     def _load_channel_info(self):
         self.channel_name.SetValue(self.channel_info.settings.name)
+        # noinspection PyTypeHints
         role_string_index = self.channel_role.FindString(shared.channel_roles[self.channel_info.role])
         self.channel_role.SetSelection(role_string_index)
         self.mute.SetValue(self.channel_info.settings.module_settings.is_client_muted)
@@ -102,17 +105,25 @@ class ChannelEdit(wx.Dialog):
         self.channel_info.settings.psk = base64.b64decode(self.key.GetValue().encode('utf-8'))
         self.channel_info.settings.uplink_enabled = self.mqtt_uplink_enabled.GetValue()
         self.channel_info.settings.downlink_enabled = self.mqtt_downlink_enabled.GetValue()
-        self.channel_info.settings.module_settings.position_precision = self.pos_precision.GetValue()
+        if self.pos_enabled.GetValue():
+            self.channel_info.settings.module_settings.position_precision = self.pos_precision.GetValue()
+        else:
+            self.channel_info.settings.module_settings.position_precision = 0
 
         self.this_node.writeChannel(self.channel_index)
-
-        return
 
     # === wxPython events
 
     # noinspection PyUnusedLocal
     def onKeyGenButton(self, event):
         self.key.SetValue(base64.b64encode(os.urandom(32)).decode('utf-8'))
+
+    # noinspection PyUnusedLocal
+    def onPosEnabledCheckbox(self, event):
+        if self.pos_enabled.GetValue():
+            self.pos_precision.Enable()
+        else:
+            self.pos_precision.Disable()
 
     # noinspection PyUnusedLocal
     def onSaveButton(self, event):

@@ -3,7 +3,7 @@ import wx.propgrid as wxpg
 
 import shared
 from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect, EVT_REMOVE_DEVICE, \
-    disconnect_device
+    disconnect_device, refresh_specific_panel
 from panels.channel_edit import ChannelEdit
 
 
@@ -104,10 +104,9 @@ class DevConfigPanel(wx.Panel):
         self.user_config_editor.Append(wxpg.StringProperty("Short name", "short_name", interface.getShortName()))
         self.user_config_editor.Append(wxpg.StringProperty("Long name", "long_name", interface.getLongName()))
         self.user_config_editor.Append(wxpg.BoolProperty("Licensed mode", "is_licensed",
-                                                         user_values.get("is_licensed", False)))
-        # TODO: Is is_unmessageable the right name?
+                                                         user_values.get("isLicensed", False)))
         self.user_config_editor.Append(wxpg.BoolProperty("Unmessageable", "is_unmessageable",
-                                                         user_values.get("is_unmessageable", False)))
+                                                         user_values.get("isUnmessagable", False)))
         self.SendSizeEvent()  # this is what it takes to get the user config editor to display w/o scroll bars
 
         return
@@ -302,16 +301,12 @@ class DevConfigPanel(wx.Panel):
     def onChanEditButton(self, event):
         # TODO: Only allow editing of the first disabled channel
         channel_index = self.channel_list.GetFirstSelected()
-        edit_dialog = ChannelEdit(self, self.this_node.channels[channel_index], channel_index, self.this_node)
+        edit_dialog = ChannelEdit(self, self.this_node.channels[channel_index], channel_index, self.this_node,
+                                  self.selected_device)
         if edit_dialog.ShowModal() == wx.ID_OK:
-            # Channel info was saved. We need a clean close() for the device to actually take the change
-            # Send an event to close the device
-            wx.RichMessageDialog(self, "Disconnecting device to finish saving new channel information\n"
-                                       "Go to the devices panel to reconnect",
-                                 style=wx.OK | wx.ICON_INFORMATION).ShowModal()
-            # wx.PostEvent(self.GetTopLevelParent(), disconnect_device(name=self.selected_device))
-            # *** Just do a direct close to see if it works
-            # shared.connected_interfaces[self.selected_device].close()
+            wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="chm"))
+            wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="devices"))
+            self._load_channel_list()
 
     # noinspection PyUnusedLocal
     def onChanDeleteButton(self, event):
@@ -321,6 +316,8 @@ class DevConfigPanel(wx.Panel):
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
         if confirm == wx.ID_OK:
             self.this_node.deleteChannel(channel_index)
+            wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="chm"))
+            wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="devices"))
             self._load_channel_list()
 
     # noinspection PyUnusedLocal

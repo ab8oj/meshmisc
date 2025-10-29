@@ -165,6 +165,10 @@ class DevicesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def refresh_panel(self, event):
+        # Refresh device info of selected device, in case that was changed
+        selected_index = self.device_list.GetFirstSelected()
+        if selected_index != -1:
+            self._show_device_info(selected_index)
         self.Layout()
 
     def update_connection_status(self, event):
