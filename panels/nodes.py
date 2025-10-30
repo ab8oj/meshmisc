@@ -196,6 +196,7 @@ class NodesPanel(wx.Panel):
         if self.selected_device == device_name:
             self.selected_device = None
             self.node_list.DeleteAllItems()
+            self.node_list_label.SetLabel("Nodes")
             self._clear_node_info()
 
     # noinspection PyUnusedLocal
