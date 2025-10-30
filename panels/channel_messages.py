@@ -38,7 +38,7 @@ class ChannelMessagesPanel(wx.Panel):
         self.messages.SetColumns([
             ColumnDefn("Timestamp", "left", 150, "timestamp", isEditable=False),
             ColumnDefn("Sender", "left", 50, "sender", isEditable=False),
-            ColumnDefn("Message", "left", -1, "message", isEditable=False, isSpaceFilling=True),
+            ColumnDefn("", "left", -1, "message", isEditable=False),
         ])
         self.messages.SetEmptyListMsg("No messages")
         sizer.Add(messages_label, 0, flag=wx.LEFT)

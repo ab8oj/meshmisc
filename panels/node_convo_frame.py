@@ -27,7 +27,7 @@ class NodeConvoFrame(wx.Frame):
             ColumnDefn("Timestamp", "left", 150, "timestamp", isEditable=False),
             ColumnDefn("From", "left", 50, "from", isEditable=False),
             ColumnDefn("To", "left", 50, "to", isEditable=False),
-            ColumnDefn("Message", "left", -1, "message", isEditable=False, isSpaceFilling=True),
+            ColumnDefn("", "left", -1, "message", isEditable=False),
         ])
         self.messages.SetEmptyListMsg("No messages")
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
