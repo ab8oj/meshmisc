@@ -6,7 +6,7 @@ import shared
 from mesh_managers import DeviceManager
 from gui_events import (set_status_bar, EVT_REFRESH_PANEL,
                         update_connection_status, EVT_UPDATE_CONNECTION_STATUS, announce_new_device,
-                        EVT_FAKE_DEVICE_DISCONNECT, EVT_DISCONNECT_DEVICE)
+                        EVT_FAKE_DEVICE_DISCONNECT, EVT_DISCONNECT_DEVICE, remove_device)
 
 
 class DevicesPanel(wx.Panel):
@@ -161,22 +161,7 @@ class DevicesPanel(wx.Panel):
             elif isinstance(widget, wx.TextCtrl):
                 widget.Clear()
 
-    # === wxPython events
-
-    # noinspection PyUnusedLocal
-    def refresh_panel(self, event):
-        # Refresh device info of selected device, in case that was changed
-        selected_index = self.device_list.GetFirstSelected()
-        if selected_index != -1:
-            self._show_device_info(selected_index)
-        self.Layout()
-
-    def update_connection_status(self, event):
-        if event.name:
-            short_name = event.name
-        else:
-            short_name = "unknown"  # triggers status-cannot-be-updated dialog below
-        status = event.status
+    def _update_connection_status(self, short_name, status):
         index = self.device_list.FindItem(-1, short_name)
         if index == -1:
             message = (f"WARNING: Device with name {short_name} was not found in the node list, "
@@ -189,6 +174,30 @@ class DevicesPanel(wx.Panel):
             self._show_device_info(index)
         self.Layout()
         return
+
+    def _update_device_name(self, index, name):
+        self.device_list.SetItem(index, 0, name)
+        for col in range(self.device_list.GetColumnCount()):
+            self.device_list.SetColumnWidth(col, wx.LIST_AUTOSIZE)
+
+    # === wxPython events
+
+    # noinspection PyUnusedLocal
+    def refresh_panel(self, event):
+        # Refresh device info of selected device, in case that was changed
+        selected_index = self.device_list.GetFirstSelected()
+        if selected_index != -1:
+            self._show_device_info(selected_index)
+        self.Layout()
+
+    def update_connection_status(self, event):
+        # Handle the event version of updating the connection status
+        if event.name:
+            short_name = event.name
+        else:
+            short_name = "unknown"  # triggers status-cannot-be-updated dialog below
+        status = event.status
+        self._update_connection_status(short_name, status)
 
     def fake_device_disconnect(self, event):
         # Fake a device disconnection for cases where the pub/sub topic doesn't come through
@@ -240,9 +249,14 @@ class DevicesPanel(wx.Panel):
             if not discovered_devices:
                 return
 
-        # TODO: How will the split of name work out for serial and TCP devices?
         for dev_type, address, name in discovered_devices:
-            self.device_list.Append((name.split("_")[0], "Disconnected", dev_type, address))
+            if dev_type == "ble":
+                # BLE device name starts with shortname and an underscore
+                self.device_list.Append((name.split("_")[0], "Disconnected", dev_type, address))
+            else:
+                # With other device types, we don't know the short name until we connect
+                self.device_list.Append(("----", "Disconnected", dev_type, address))
+
             for col in range(self.device_list.GetColumnCount()):
                 self.device_list.SetColumnWidth(col, wx.LIST_AUTOSIZE)
             self.Layout()  # Columns don't resize until window is jiggled
@@ -267,12 +281,23 @@ class DevicesPanel(wx.Panel):
             wx.RichMessageDialog(self, f"Cannot connect to device {name} because its status is {status}",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
+
         try:
-            shared.connected_interfaces[name] = self.device_manager.connect_to_specific_device(dev_type, address)
+            interface = self.device_manager.connect_to_specific_device(dev_type, address)
         except Exception as e:
             wx.RichMessageDialog(self, f"Error connecting to device: {str(e)}",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
+
+        if interface:
+            name = interface.getShortName()
+        else:
+            wx.RichMessageDialog(self, "Connection attempt failed",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+        shared.connected_interfaces[name] = interface
+        self._update_device_name(selected_item, name)
+        self._update_connection_status(name, "Connected")
 
         return
 
@@ -327,7 +352,6 @@ class DevicesPanel(wx.Panel):
     def onConnectionUp(self, interface):
         short_name = interface.getShortName()
         shared.connected_interfaces[short_name] = interface
-        wx.PostEvent(self, update_connection_status(name=short_name, status="Connected"))
         wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection established to {short_name}"))
         wx.PostEvent(self.GetTopLevelParent(), announce_new_device(name=short_name, interface=interface))
         return
@@ -338,5 +362,5 @@ class DevicesPanel(wx.Panel):
         short_name = interface.getShortName()
         wx.PostEvent(self, update_connection_status(name=short_name, status="Disconnected"))
         wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection lost to {short_name}"))
-        # TODO: See if this can use the same stuff as faking a down connection
+        wx.PostEvent(self.GetTopLevelParent(), remove_device(name=short_name, interface=interface))
         return

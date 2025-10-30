@@ -15,11 +15,10 @@ from panels.channel_messages import ChannelMessagesPanel
 from panels.direct_messages import DirectMessagesPanel
 from gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANNOUNCE_NEW_DEVICE, add_device, node_updated, \
     refresh_panel, EVT_REFRESH_SPECIFIC_PANEL, EVT_FAKE_DEVICE_DISCONNECT, remove_device, fake_device_disconnect, \
-    EVT_DISCONNECT_DEVICE, disconnect_device
+    EVT_DISCONNECT_DEVICE, disconnect_device, EVT_REMOVE_DEVICE
 
 
 # TODO: Implement logging
-# TODO: Is interface.nodes really a reliable node database? Perhaps it has some gaps
 class MainFrame(wx.Frame):
     def __init__(self, parent):
         # noinspection PyTypeChecker
@@ -83,6 +82,7 @@ class MainFrame(wx.Frame):
         self.Bind(EVT_REFRESH_SPECIFIC_PANEL, self.refreshSpecifcPanel)
         self.Bind(EVT_FAKE_DEVICE_DISCONNECT, self.fake_device_disconnect)
         self.Bind(EVT_DISCONNECT_DEVICE, self.reflect_device_disconnect_to_device_panel)
+        self.Bind(EVT_REMOVE_DEVICE, self.real_device_disconnect)
 
         return
 
@@ -157,11 +157,19 @@ class MainFrame(wx.Frame):
         wx.PostEvent(self.panel_pointers["node"], remove_device(name=event.name, interface=event.interface))
         wx.PostEvent(self.panel_pointers["devconfig"], remove_device(name=event.name, interface=event.interface))
 
+    def real_device_disconnect(self, event):
+        # Send events to children that need to know when a device disconnects
+        wx.PostEvent(self.panel_pointers["chm"], remove_device(name=event.name, interface=event.interface))
+        wx.PostEvent(self.panel_pointers["dm"], remove_device(name=event.name, interface=event.interface))
+        wx.PostEvent(self.panel_pointers["node"], remove_device(name=event.name, interface=event.interface))
+        wx.PostEvent(self.panel_pointers["devconfig"], remove_device(name=event.name, interface=event.interface))
+
     def reflect_device_disconnect_to_device_panel(self, event):
         # A panel needs a device to be disconnected. Send that on to the devices panel
         wx.PostEvent(self.panel_pointers["devices"], disconnect_device(name=event.name))
 
     def refreshSpecifcPanel(self, event):
+        # A child panel is asking another child panel to refresh
         panel_name = event.panel_name
         if panel_name in self.panel_pointers:
             wx.PostEvent(self.panel_pointers[panel_name], refresh_panel())
