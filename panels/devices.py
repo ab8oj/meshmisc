@@ -310,20 +310,25 @@ class DevicesPanel(wx.Panel):
 
         name = self.device_list.GetItemText(selected_item, 0)
         dev_type = self.device_list.GetItemText(selected_item, 2)
+
+        # Warn about BLE disconnect bug (might be Mac-specific)
         if dev_type == "ble":
-            # Warn use about BLE disconnect bug (might be Mac-specific)
             wx.RichMessageDialog(self, "WARNING: BLE device disconnects hang on some platforms, "
                                        "force-quit the application if the disconnect hangs",
                                  style=wx.ICON_WARNING | wx.OK).ShowModal()
+
         try:
             shared.connected_interfaces[name].close()
         except Exception as e:
             wx.RichMessageDialog(self, f"Error disconnecting from device: {str(e)}",)
             return
 
+        self._clear_device_info()
+
         # Remove the old interface object but don't close the associated windows. If a reconnect happens, the
         # key (name) will still be the same, so all the windows will still match up with the new object
         shared.connected_interfaces.pop(name, None)
+
         return
 
     # noinspection PyUnusedLocal
