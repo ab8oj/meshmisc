@@ -72,13 +72,16 @@ https://stackoverflow.com/questions/68174615/python-multithreading-with-pypubsub
 
 # Known Issues
 ## Channel configuration
-At least in MacOS/BLE environments, channel saving is hit-and-miss.
-Channels might save, or they might not. This behavior also exists in the Meshtastic Python CLI,
+At least in MacOS BLE and serial environments, channel saving and deleting is hit-and-miss.
+It might work, or it might not. This behavior also exists in the Meshtastic Python CLI,
 although much less frequently than in this client.  This means it is likely a 
 problem with the Meshtastic Python package.
 
-At least in MacOS/BLE environments, if you delete a channel in the middle of a 
+At least in MacOS BLE environments, if you delete a channel in the middle of a 
 block of channels, the topmost channel info will stay in its old slot. In other words,
 you end up with two copies of the topmost channel: one in its original slot, and the other
 in its new slot (where it's supposed to move to).  This is consistently replicated in the
 Meshtastic Python CLI, so it is likely a bug with the Meshtastic Python package.
+
+## GUI
+Setting the color of button text does not work on all platforms, Mac being one of them.

@@ -3,7 +3,7 @@ from datetime import datetime
 
 import shared
 from gui_events import (EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED, EVT_CHILD_CLOSED,
-                        EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel, EVT_REMOVE_DEVICE)
+                        EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel, EVT_REMOVE_DEVICE, fake_device_disconnect)
 from panels.node_convo_frame import NodeConvoFrame
 
 
@@ -58,6 +58,14 @@ class NodesPanel(wx.Panel):
         self.node_details_grid.Add(self.hops_away_snr, pos=(3, 0))
         self.node_details_grid.Add(self.last_heard_time, pos=(3, 1))
         sizer.Add(self.node_details_grid, 0)
+
+        self.reset_node_db_button = wx.Button(self, wx.ID_ANY, "Reset node database")
+        self.reset_node_db_button.SetForegroundColour(wx.RED)  # Does not work on all platforms (looking at you, Mac)
+        self.reset_node_db_button.Disable()
+        self.Bind(wx.EVT_BUTTON, self.onResetNodeDBButton, self.reset_node_db_button)
+        bottom_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        bottom_button_sizer.Add(self.reset_node_db_button, 0, flag=wx.ALIGN_BOTTOM)
+        sizer.Add(bottom_button_sizer, 1, flag=wx.EXPAND)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
@@ -142,6 +150,9 @@ class NodesPanel(wx.Panel):
             self.node_list.Append((node, node_dict[node]["user"]["shortName"],
                                    node_dict[node]["user"]["longName"]))
 
+        # Enable device-specific buttons
+        self.reset_node_db_button.Enable()
+
     def onNodeSelected(self, evt):
         self.selected_node = evt.GetIndex()
         self._show_node_info(self.selected_node)
@@ -170,6 +181,21 @@ class NodesPanel(wx.Panel):
         node_convo_frame.Show(True)
 
     # noinspection PyUnusedLocal
+    def onResetNodeDBButton(self, event):
+        confirm = wx.RichMessageDialog(self, f"Reset node database on device {self.selected_device}?",
+                                       style=wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
+        if confirm == wx.ID_OK:
+            shared.connected_interfaces[self.selected_device].getNode("^local").resetNodeDb()
+            self.node_list.DeleteAllItems()
+            # Some device types may not generate a node-down pubsub event. Assume this node just rebooted,
+            # and fake the disconnect
+            wx.PostEvent(self.GetTopLevelParent(),
+                         fake_device_disconnect(name=self.selected_device,
+                                                interface=shared.connected_interfaces[self.selected_device]))
+            wx.RichMessageDialog(self, "Device will now reboot, reconnect from the Devices panel",
+                                 style=wx.OK).ShowModal()
+
+    # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
         self.Layout()
         for child in self.active_subpanels:
@@ -186,6 +212,7 @@ class NodesPanel(wx.Panel):
         if self.msg_device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
             self.msg_device_picker.Select(0)
+            self.reset_node_db_button.Enable()
 
     def remove_device_event(self, evt):
         device_name = evt.name
@@ -198,6 +225,7 @@ class NodesPanel(wx.Panel):
             self.node_list.DeleteAllItems()
             self.node_list_label.SetLabel("Nodes")
             self._clear_node_info()
+            self.reset_node_db_button.Disable()
 
     # noinspection PyUnusedLocal
     def receive_node_event(self, event):
