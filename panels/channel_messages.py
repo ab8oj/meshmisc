@@ -142,6 +142,8 @@ class ChannelMessagesPanel(wx.Panel):
             for chan in channel_list:
                 if chan.role != 0:
                     self.msg_channel_list.Append((chan.index, chan.settings.name))
+        else:
+            self.msg_channel_list.DeleteAllItems()  # Make sure channel list is cleared if no selected device
         self.Layout()
 
     def add_device_event(self, evt):
@@ -149,15 +151,19 @@ class ChannelMessagesPanel(wx.Panel):
         interface = evt.interface
         channel_list = interface.localNode.channels
 
-        # Add the new device to the device picker and message buffer
-        self.msg_device_picker.Append(device_name)
+        # Add the new device to the device picker if it isn't already there
+        index = self.msg_device_picker.FindString(device_name)
+        if index != wx.NOT_FOUND:
+            self.msg_device_picker.Append(device_name)
+
+        # If this is the first device, auto-select it
         if self.msg_device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
             self.msg_device_picker.Select(0)
+
+        # Add the new device and channels to the channel message buffer if needed
         if device_name not in shared.channel_messages:
             shared.channel_messages[device_name] = {}
-
-        # Add the channels to the message buffer
         for chan in channel_list:
             if chan.index not in shared.channel_messages[device_name]:
                 shared.channel_messages[device_name][chan.index] = []
