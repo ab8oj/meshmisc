@@ -139,6 +139,7 @@ class ChannelMessagesPanel(wx.Panel):
         # Repopulate channel list, in case channels were edited
         if self.selected_device:
             channel_list = shared.connected_interfaces[self.selected_device].localNode.channels
+            self.msg_channel_list.DeleteAllItems()
             for chan in channel_list:
                 if chan.role != 0:
                     self.msg_channel_list.Append((chan.index, chan.settings.name))
@@ -153,7 +154,7 @@ class ChannelMessagesPanel(wx.Panel):
 
         # Add the new device to the device picker if it isn't already there
         index = self.msg_device_picker.FindString(device_name)
-        if index != wx.NOT_FOUND:
+        if index == wx.NOT_FOUND:
             self.msg_device_picker.Append(device_name)
 
         # If this is the first device, auto-select it
