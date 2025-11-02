@@ -316,6 +316,13 @@ class DevicesPanel(wx.Panel):
             wx.RichMessageDialog(self, "WARNING: BLE device disconnects hang on some platforms, "
                                        "force-quit the application if the disconnect hangs",
                                  style=wx.ICON_WARNING | wx.OK).ShowModal()
+        elif dev_type == "tcp":
+            # TCP devices lose a lot of their info after a close(), so we need to fire the device cleanup
+            # events before closing.
+            wx.PostEvent(self, update_connection_status(name=name, status="Disconnected"))
+            wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection to {name} closed"))
+            wx.PostEvent(self.GetTopLevelParent(), remove_device(name=name,
+                                                                 interface=shared.connected_interfaces[name]))
 
         try:
             shared.connected_interfaces[name].close()
@@ -363,8 +370,13 @@ class DevicesPanel(wx.Panel):
 
     def onConnectionDown(self, interface):
         # BLE devices in particular don't always report connection down when they disconnect
-        # NOTE: If you end up removing the interface, check to see if it exists first in case the kludge removed it
+        # TCP devices lose a lot of their info when a close() is done, including shortname. If the interface no
+        # longer has a shortname, assume a deliberate close() happened, and also assume these cleanup tasks
+        # were done at that time.
         short_name = interface.getShortName()
+        if not short_name:
+            return
+
         wx.PostEvent(self, update_connection_status(name=short_name, status="Disconnected"))
         wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection lost to {short_name}"))
         wx.PostEvent(self.GetTopLevelParent(), remove_device(name=short_name, interface=interface))

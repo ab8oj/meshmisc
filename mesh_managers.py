@@ -1,9 +1,10 @@
-import meshtastic.mesh_interface
-import serial_port
-
-import ble
 import logging
 from pubsub import pub
+
+import meshtastic.mesh_interface
+import serial_port
+import tcp
+import ble
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)  # Set our own logging level separately from the root
@@ -72,7 +73,7 @@ class DeviceManager:
             return ble.scan_all_devices()  # Gives us a list of ("ble", address, name) tuples
         elif interface_type == "tcp":
             log.debug("Finding tcp devices")
-            raise Unimplemented("TCP interface type is not currently supported")
+            return tcp.scan_all_devices()  # Gives us a list of ("tcp", address, address) tuples
         elif interface_type == "serial":
             log.debug("Finding serial devices")
             return serial_port.scan_all_devices()  # Gives us a list of ("serial", device_path, device_path) tuples
@@ -91,8 +92,8 @@ class DeviceManager:
             # TODO: a connection error does not seem to raise an exception (e.g. double conn = no such dev address)
             interface = ble.make_connection_and_return(address)  # Let exceptions fly past us to the caller
         elif interface_type == "tcp":
-            log.debug("Finding tcp devices")
-            raise Unimplemented("TCP interface type is not currently supported")
+            log.debug("Connecting to tcp device {address}")
+            interface = tcp.make_connection_and_return(address)
         elif interface_type == "serial":
             log.debug(f"Connecting to serial device {address}")
             interface = serial_port.make_connection_and_return(address)

@@ -54,11 +54,12 @@ APP_LOG_NAME=msg_forward.log
 MSG_LOG_NAME=messages.log  
 CHANNEL_MESSAGE_LOG=channel-messages.csv  
 DIRECT_MESSAGE_LOG=direct-messages.csv  
-SMTP_SERVER=<smtp server address>  
-SMTP_SENDER=<smtp server username>  
-SMTP_PASSWORD=<smtp server password>   
-EMAIL_FROM_ADDRESS=<email-from-address>  
-EMAIL_TO_ADDRESS=<email-to-address>  
+SMTP_SERVER=\<smtp server address>  
+SMTP_SENDER=\<smtp server username>  
+SMTP_PASSWORD=\<smtp server password>   
+EMAIL_FROM_ADDRESS=\<email-from-address>  
+EMAIL_TO_ADDRESS=\<email-to-address>  
+TCP_DEVICES='\<IP or dns hostname>,...'  # single quotes are required here
 
 ## Important note about handling Meshtastic pub/sub events
 Evidently the topic subscriber functions  get *called* by the same thread that does the SendMessage, so they
