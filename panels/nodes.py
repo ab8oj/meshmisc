@@ -1,6 +1,8 @@
 import wx
 from datetime import datetime
 
+from ObjectListView3 import ObjectListView, ColumnDefn
+
 import shared
 from gui_events import (EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED, EVT_CHILD_CLOSED,
                         EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel, EVT_REMOVE_DEVICE, fake_device_disconnect)
@@ -22,12 +24,15 @@ class NodesPanel(wx.Panel):
         sizer.Add(self.msg_device_picker, 0)
 
         self.node_list_label = wx.StaticText(self, wx.ID_ANY, "Nodes")
-        self.node_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
+        self.node_list = ObjectListView(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         self.node_list.SetMinSize(wx.Size(-1, 300))
         self.node_list.SetMaxSize(wx.Size(-1, 300))
-        self.node_list.InsertColumn(0, "Node ID", width=wx.LIST_AUTOSIZE)
-        self.node_list.InsertColumn(1, "Name", width=50)
-        self.node_list.InsertColumn(2, "Long Name", width=400)
+        self.node_list.SetColumns([
+            ColumnDefn("Node ID", "left", 100, "nodeid", isEditable=False),
+            ColumnDefn("Name", "left", 50, "name", isEditable=False),
+            ColumnDefn("Long Name", "left", -1, "longname", isEditable=False, isSpaceFilling=True),
+        ])
+        self.node_list.SetEmptyListMsg("No nodes")
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onNodeSelected, self.node_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onNodeDeselected, self.node_list)
         sizer.Add(self.node_list_label, 0, flag=wx.LEFT)
@@ -81,6 +86,7 @@ class NodesPanel(wx.Panel):
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
         self.selected_node = None  # Ditto for node last selected
         self.active_subpanels = []  # List of active node conversation frames that will get refreshed on new messages
+        self.node_data = []  # Abbreviated node data for node list
 
     # === Helpers and utilities
 
@@ -132,25 +138,31 @@ class NodesPanel(wx.Panel):
             elif isinstance(widget, wx.TextCtrl):
                 widget.Clear()
 
+    def _populate_node_list(self):
+        # If we don't have a selected device, we clearly don't need to see anything in the list
+        if not self.selected_device:
+            return
+
+        # Populate the node list
+        self.node_data = []
+        for nodeid, data in shared.connected_interfaces[self.selected_device].nodes.items():
+            node_data_row = {
+                "nodeid": nodeid,
+                "name": data.get("user", {}).get("shortName", "????"),
+                "longname": data.get("user", {}).get("longName", "Unknown"),
+            }
+            self.node_data.append(node_data_row)
+        self.node_list.SetObjects(self.node_data)
+
+        # Update node count
+        self.node_list_label.SetLabel(f"Nodes ({self.node_list.GetItemCount()})")
+        self.Layout()
+
     # === wxPython events
 
     def onDevicePickerChoice(self, evt):
-        # Note that this also fires when the first item is added
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
-
-        # Repopulate the node list with the new device's nodes
-        # DeleteAllItems doesn't seem to generate a deselect event, force deselect so nodes get cleared
-        selected_node = self.node_list.GetFirstSelected()
-        if selected_node != -1:
-            self.node_list.Select(selected_node, 0)
-        self.node_list.DeleteAllItems()
-        node_dict = shared.connected_interfaces[self.selected_device].nodes
-        for node in node_dict:
-            # TODO: change to using .get() for key error avoidance
-            self.node_list.Append((node, node_dict[node]["user"]["shortName"],
-                                   node_dict[node]["user"]["longName"]))
-
-        # Enable device-specific buttons
+        self._populate_node_list()
         self.reset_node_db_button.Enable()
 
     def onNodeSelected(self, evt):
@@ -186,7 +198,8 @@ class NodesPanel(wx.Panel):
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
         if confirm == wx.ID_OK:
             shared.connected_interfaces[self.selected_device].getNode("^local").resetNodeDb()
-            self.node_list.DeleteAllItems()
+            self.node_data = []
+            self.node_list.SetObjects(self.node_data)
             # Some device types may not generate a node-down pubsub event. Assume this node just rebooted,
             # and fake the disconnect
             wx.PostEvent(self.GetTopLevelParent(),
@@ -197,6 +210,7 @@ class NodesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
+        self.node_list.SetObjects(self.node_data)
         self.Layout()
         for child in self.active_subpanels:
             wx.PostEvent(child, refresh_panel())
@@ -211,7 +225,8 @@ class NodesPanel(wx.Panel):
         self.msg_device_picker.Append(device_name)
         if self.msg_device_picker.GetCount() == 1:  # this is the first device, auto-select it
             self.selected_device = device_name
-            self.msg_device_picker.Select(0)
+            self.msg_device_picker.Select(0)  # This doesn't seem to generate a select event, so...
+            self._populate_node_list()
             self.reset_node_db_button.Enable()
 
     def remove_device_event(self, evt):
@@ -222,7 +237,8 @@ class NodesPanel(wx.Panel):
             self.msg_device_picker.Delete(index)
         if self.selected_device == device_name:
             self.selected_device = None
-            self.node_list.DeleteAllItems()
+            self.node_data = []
+            self.node_list.SetObjects(self.node_data)
             self.node_list_label.SetLabel("Nodes")
             self._clear_node_info()
             self.reset_node_db_button.Disable()
@@ -250,19 +266,8 @@ class NodesPanel(wx.Panel):
             print(f"Device name: {device_name}, node number: {node_num}, "
                   f"short_name: {short_name}, long_name: {long_name}")
 
-        # Find the node in the list
-        matching_list_item = self.node_list.FindItem(-1, node_id)
-
-        # If the node is not in the list, add it. If it is, replace it
-        if matching_list_item == wx.NOT_FOUND:
-            self.node_list.Append((node_id, short_name, long_name))
-        else:
-            self.node_list.DeleteItem(matching_list_item)
-            self.node_list.Append((node_id, short_name, long_name))
-
-        # Update node count
-        self.node_list_label.SetLabel(f"Nodes ({self.node_list.GetItemCount()})")
-        self.Layout()
+        # Rather than fiddle around trying to see if the node data already exists in the list, just reload it
+        self._populate_node_list()
 
         return
 
@@ -273,4 +278,4 @@ class NodesPanel(wx.Panel):
             wx.PostEvent(child, refresh_panel())
 
     def child_closed_event(self, event):
-        pass  # Nothing in particular to do that
+        pass  # Nothing in particular to do
