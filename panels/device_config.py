@@ -20,7 +20,8 @@ class DevConfigPanel(wx.Panel):
         self.device_picker.SetSelection(wx.NOT_FOUND)
         self.Bind(wx.EVT_CHOICE, self.onDevicePickerChoice, self.device_picker)
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
-        sizer.Add(self.device_picker, 0)
+        sizer.Add(self.device_picker, 0, wx.BOTTOM | wx.TOP, 2)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
 
         sizer.Add(wx.StaticText(self, wx.ID_ANY, "User configuration"), 0)
         user_button_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -30,13 +31,13 @@ class DevConfigPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.onUserReloadButton, user_reload_button)
         self.Bind(wx.EVT_BUTTON, self.onUserSaveButton, user_save_button)
         user_button_box.Add(user_save_button, 0)
-        sizer.Add(user_button_box, 0)
+        sizer.Add(user_button_box, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 2)
         # Using a property grid for consistency, but the properties will be hardcoded
         self.user_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         self.user_config_editor.SetMinSize(wx.Size(-1, 75))
         self.user_config_editor.SetMaxSize(wx.Size(-1, 75))
         self.user_config_editor.SetInitialSize(wx.Size(-1, 75))
-        sizer.Add(self.user_config_editor, 1, wx.EXPAND)
+        sizer.Add(self.user_config_editor, 1, wx.EXPAND | wx.BOTTOM, 5)
 
         sizer.Add(wx.StaticText(self, wx.ID_ANY, "Channel Configuration"), 0)
         chan_button_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -48,7 +49,7 @@ class DevConfigPanel(wx.Panel):
         chan_button_box.Add(self.chan_delete_button, 0)
         self.Bind(wx.EVT_BUTTON, self.onChanEditButton, self.chan_edit_button)
         self.Bind(wx.EVT_BUTTON, self.onChanDeleteButton, self.chan_delete_button)
-        sizer.Add(chan_button_box, 0)
+        sizer.Add(chan_button_box, 0, wx.TOP | wx.BOTTOM, 2)
         self.channel_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         self.channel_list.SetMinSize(wx.Size(430, 100))
         self.channel_list.SetMaxSize(wx.Size(430, 150))  # May want to adjust max size later
@@ -57,7 +58,7 @@ class DevConfigPanel(wx.Panel):
         self.channel_list.InsertColumn(2, 'Name', width=300)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onChannelSelected, self.channel_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onChannelDeselected, self.channel_list)
-        sizer.Add(self.channel_list, 1)
+        sizer.Add(self.channel_list, 1, wx.BOTTOM, 5)
 
         sizer.Add(wx.StaticText(self, wx.ID_ANY, "Device Configuration"), 0)
         lc_button_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -67,7 +68,7 @@ class DevConfigPanel(wx.Panel):
         lc_button_box.Add(lc_save_button, 0)
         self.Bind(wx.EVT_BUTTON, self.onLCReloadButton, lc_reload_button)
         self.Bind(wx.EVT_BUTTON, self.onLCSaveButton, lc_save_button)
-        sizer.Add(lc_button_box, 0)
+        sizer.Add(lc_button_box, 0, wx.TOP | wx.BOTTOM, 2)
         self.lc_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         sizer.Add(self.lc_config_editor, 1, wx.EXPAND)
 
@@ -79,7 +80,7 @@ class DevConfigPanel(wx.Panel):
         mc_button_box.Add(mc_save_button, 0)
         self.Bind(wx.EVT_BUTTON, self.onMCReloadButton, mc_reload_button)
         self.Bind(wx.EVT_BUTTON, self.onMCSaveButton, mc_save_button)
-        sizer.Add(mc_button_box, 0)
+        sizer.Add(mc_button_box, 0, wx.TOP | wx.BOTTOM, 2)
         self.mc_config_editor = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         sizer.Add(self.mc_config_editor, 1, wx.EXPAND)
 

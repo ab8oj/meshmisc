@@ -15,7 +15,7 @@ class AppConfigPanel(wx.Panel):
 
         header_text_box = wx.BoxSizer(wx.HORIZONTAL)
         header_text_box.Add(wx.StaticText(self, label="Environment file editor"), wx.CENTER)
-        outer_box.Add(header_text_box, 0, wx.CENTER | wx.TOP)
+        outer_box.Add(header_text_box, 0, wx.CENTER | wx.TOP, 5)
 
         button_box = wx.BoxSizer(wx.HORIZONTAL)
         reload_button = wx.Button(self, label="Reload")
@@ -24,7 +24,7 @@ class AppConfigPanel(wx.Panel):
         button_box.Add(save_button, 0)
         self.Bind(wx.EVT_BUTTON, self.onReloadButton, reload_button)
         self.Bind(wx.EVT_BUTTON, self.onSaveButton, save_button)
-        outer_box.Add(button_box, 0, wx.CENTER)
+        outer_box.Add(button_box, 0, wx.CENTER | wx.TOP | wx.BOTTOM, 5)
 
         # TODO: Email validator for email properties (see bottom of dev doc for snippets)
 

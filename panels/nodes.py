@@ -21,7 +21,8 @@ class NodesPanel(wx.Panel):
         self.msg_device_picker.SetSelection(wx.NOT_FOUND)
         self.Bind(wx.EVT_CHOICE, self.onDevicePickerChoice, self.msg_device_picker)
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
-        sizer.Add(self.msg_device_picker, 0)
+        sizer.Add(self.msg_device_picker, 0, wx.BOTTOM | wx.TOP, 2)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
 
         self.node_list_label = wx.StaticText(self, wx.ID_ANY, "Nodes")
         self.node_list = ObjectListView(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
@@ -36,12 +37,12 @@ class NodesPanel(wx.Panel):
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onNodeSelected, self.node_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onNodeDeselected, self.node_list)
         sizer.Add(self.node_list_label, 0, flag=wx.LEFT)
-        sizer.Add(self.node_list, 0, flag=wx.EXPAND)
+        sizer.Add(self.node_list, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         self.convo_button = wx.Button(self, wx.ID_ANY, "Show direct message conversation")
         self.convo_button.Disable()
         self.Bind(wx.EVT_BUTTON, self.onConvoButton, self.convo_button)
-        sizer.Add(self.convo_button, 0)
+        sizer.Add(self.convo_button, 0, wx.BOTTOM, 5)
 
         self.node_details_grid = wx.GridBagSizer(hgap=10, vgap=5)  # Bottom part of page: node details
         # Row 1 - model
@@ -62,7 +63,7 @@ class NodesPanel(wx.Panel):
         self.last_heard_time = wx.StaticText(self, wx.ID_ANY)
         self.node_details_grid.Add(self.hops_away_snr, pos=(3, 0))
         self.node_details_grid.Add(self.last_heard_time, pos=(3, 1))
-        sizer.Add(self.node_details_grid, 0)
+        sizer.Add(self.node_details_grid, 0, wx.EXPAND | wx.ALL, 5)
 
         self.reset_node_db_button = wx.Button(self, wx.ID_ANY, "Reset node database")
         self.reset_node_db_button.SetForegroundColour(wx.RED)  # Does not work on all platforms (looking at you, Mac)
