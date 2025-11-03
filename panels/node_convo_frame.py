@@ -18,9 +18,10 @@ class NodeConvoFrame(wx.Frame):
         self.local_node_name = interface.getShortName()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(wx.StaticText(self, -1, f"Device: {self.local_node_name}"))
+        sizer.Add(wx.StaticText(self, -1, f"Device: {self.local_node_name}"), 0, wx.BOTTOM | wx.LEFT, 3)
+        sizer.Add(wx.StaticText(self, -1, f"Remote: {self.remote_node_name}"), 0, wx.BOTTOM | wx.LEFT, 5)
         messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
-        sizer.Add(messages_label, 0, flag=wx.LEFT)
+        sizer.Add(messages_label, 0, wx.LEFT | wx.BOTTOM | wx.LEFT, 5)
 
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
@@ -32,7 +33,7 @@ class NodeConvoFrame(wx.Frame):
         self.messages.SetEmptyListMsg("No messages")
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
                                  preserveSelection=True)
-        sizer.Add(self.messages, 4, flag=wx.EXPAND)
+        sizer.Add(self.messages, 4, wx.EXPAND)
 
         send_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.send_button = wx.Button(self, wx.ID_ANY, "Send")
@@ -43,9 +44,8 @@ class NodeConvoFrame(wx.Frame):
         send_sizer.Add(self.send_text, 1, flag=wx.EXPAND)
         sizer.Add(send_sizer, 0, flag=wx.EXPAND)
 
-        self.SetSizer(sizer)
+        self.SetSizerAndFit(sizer)
         self.SetAutoLayout(True)
-        sizer.Fit(self)
 
         self.Bind(wx.EVT_CLOSE, self.closeEvent)
         self.Bind(EVT_REFRESH_PANEL, self.refresh_panel_event)
@@ -99,4 +99,6 @@ class NodeConvoFrame(wx.Frame):
     def refresh_panel_event(self, event):
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
                                  preserveSelection=True)
-        self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
+        item_count = self.messages.GetItemCount()
+        if item_count > 0:
+            self.messages.EnsureVisible(item_count - 1)
