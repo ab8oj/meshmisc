@@ -21,7 +21,8 @@ class DirectMessagesPanel(wx.Panel):
         self.msg_device_picker.SetSelection(wx.NOT_FOUND)
         self.Bind(wx.EVT_CHOICE, self.onDevicePickerChoice, self.msg_device_picker)
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
-        sizer.Add(self.msg_device_picker, 0)
+        sizer.Add(self.msg_device_picker, 0, wx.BOTTOM | wx.TOP, 2)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
 
         messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
         sizer.Add(messages_label, 0, flag=wx.LEFT)
@@ -35,7 +36,7 @@ class DirectMessagesPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.onConvoButton, self.convo_button)
         message_button_box.Add(self.quick_msg_button)
         message_button_box.Add(self.convo_button)
-        sizer.Add(message_button_box, 0)
+        sizer.Add(message_button_box, 0, wx.TOP | wx.BOTTOM, 5)
 
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
@@ -47,7 +48,7 @@ class DirectMessagesPanel(wx.Panel):
         self.messages.SetEmptyListMsg("No messages")
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onMessageSelected, self.messages)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onMessageDeselected, self.messages)
-        sizer.Add(self.messages, 4, flag=wx.EXPAND)
+        sizer.Add(self.messages, 4, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(True)

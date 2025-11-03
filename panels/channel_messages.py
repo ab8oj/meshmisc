@@ -20,7 +20,8 @@ class ChannelMessagesPanel(wx.Panel):
         self.msg_device_picker.SetSelection(wx.NOT_FOUND)
         self.Bind(wx.EVT_CHOICE, self.onDevicePickerChoice, self.msg_device_picker)
         sizer.Add(dev_picker_label, 0, flag=wx.LEFT)
-        sizer.Add(self.msg_device_picker, 0)
+        sizer.Add(self.msg_device_picker, 0, wx.BOTTOM | wx.TOP, 2)
+        sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
 
         channel_list_label = wx.StaticText(self, wx.ID_ANY, "Channels")
         self.msg_channel_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
@@ -31,7 +32,7 @@ class ChannelMessagesPanel(wx.Panel):
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onChannelSelected, self.msg_channel_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onChannelDeselected, self.msg_channel_list)
         sizer.Add(channel_list_label, 0, flag=wx.LEFT)
-        sizer.Add(self.msg_channel_list, 1)
+        sizer.Add(self.msg_channel_list, 1, wx.TOP | wx.BOTTOM, 5)
 
         messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
@@ -42,7 +43,7 @@ class ChannelMessagesPanel(wx.Panel):
         ])
         self.messages.SetEmptyListMsg("No messages")
         sizer.Add(messages_label, 0, flag=wx.LEFT)
-        sizer.Add(self.messages, 4, flag=wx.EXPAND)
+        sizer.Add(self.messages, 4, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         send_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.send_button = wx.Button(self, wx.ID_ANY, "Send")
