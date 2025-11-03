@@ -28,12 +28,13 @@ class DevicesPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.onDiscoverButton, discover_button)
         self.Bind(wx.EVT_BUTTON, self.onConnectButton, self.connect_button)
         self.Bind(wx.EVT_BUTTON, self.onDisconnectButton, self.disconnect_button)
-        device_button_box.Add(discover_button)
+        device_button_box.Add(discover_button, 0, wx.ALL, 5)
         device_button_box.Add(self.discover_ble)
         device_button_box.Add(self.discover_serial)
         device_button_box.Add(self.discover_tcp)
-        device_button_box.Add(self.connect_button)
-        device_button_box.Add(self.disconnect_button)
+        device_button_box.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
+        device_button_box.Add(self.connect_button, 0, wx.ALL, 5)
+        device_button_box.Add(self.disconnect_button, 0, wx.ALL, 5)
         device_box.Add(device_button_box)
 
         device_list_box = wx.BoxSizer(wx.VERTICAL)  # Right side of device box: device list
@@ -48,7 +49,7 @@ class DevicesPanel(wx.Panel):
         device_box.Add(device_list_box, 1, flag=wx.EXPAND)
 
         self.ble_text = wx.TextCtrl(self, wx.ID_ANY,
-                                    "NOTE: BLE devices may take several seconds to discover and connect",
+                                    "NOTE: Some device types may take several seconds to discover and/or connect",
                                     style=wx.TE_READONLY)
 
         self.device_details_grid = wx.GridBagSizer(hgap=10, vgap=5)  # Bottom part of page: device details
@@ -89,7 +90,7 @@ class DevicesPanel(wx.Panel):
 
         sizer.Add(device_box, 0, flag=wx.EXPAND)
         sizer.Add(self.ble_text, 0, flag=wx.EXPAND)
-        sizer.Add(self.device_details_grid, 0, flag=wx.EXPAND)
+        sizer.Add(self.device_details_grid, 0, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
