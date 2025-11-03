@@ -145,7 +145,9 @@ class DirectMessagesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
         self.messages.SetObjects(shared.direct_messages[self.selected_device], preserveSelection=True)
-        self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
+        item_count = self.messages.GetItemCount()
+        if item_count > 0:
+            self.messages.EnsureVisible(item_count - 1)
         for child in self.active_subpanels:
             wx.PostEvent(child, refresh_panel())
 
