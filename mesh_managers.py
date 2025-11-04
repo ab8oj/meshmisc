@@ -7,7 +7,7 @@ import tcp
 import ble
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)  # Set our own logging level separately from the root
+log.setLevel(logging.INFO)  # Set our own logging level separately from the root
 
 class InterfaceError(Exception):
     pass
@@ -89,7 +89,6 @@ class DeviceManager:
 
         if interface_type == "ble":
             log.info(f"Connecting to ble device {address}")
-            # TODO: a connection error does not seem to raise an exception (e.g. double conn = no such dev address)
             interface = ble.make_connection_and_return(address)  # Let exceptions fly past us to the caller
         elif interface_type == "tcp":
             log.debug("Connecting to tcp device {address}")
