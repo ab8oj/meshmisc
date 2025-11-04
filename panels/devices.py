@@ -173,6 +173,11 @@ class DevicesPanel(wx.Panel):
         self.device_list.SetItem(index, 1, status)
         if self.device_list.IsSelected(index) and status == "Connected":
             self._show_device_info(index)
+            self.disconnect_button.Enable()
+            self.connect_button.Disable()
+        else:
+            self.connect_button.Enable()
+            self.disconnect_button.Disable()
         self.Layout()
         return
 
@@ -343,8 +348,13 @@ class DevicesPanel(wx.Panel):
     def onDeviceSelected(self, event):
         selected_index = event.GetIndex()
         selected_short_name = self.device_list.GetItemText(selected_index, 0)
-        self.connect_button.Enable()
-        self.disconnect_button.Enable()
+        selected_status = self.device_list.GetItemText(selected_index, 1)
+        if selected_status == "Connected":
+            self.connect_button.Disable()
+            self.disconnect_button.Enable()
+        else:
+            self.connect_button.Enable()
+            self.disconnect_button.Disable()
         # We won't have an interface object for this device if it hasn't connected at least once
         if selected_short_name in shared.connected_interfaces:
             self._show_device_info(selected_index)
