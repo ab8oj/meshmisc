@@ -3,10 +3,10 @@ from datetime import datetime
 
 from ObjectListView3 import ObjectListView, ColumnDefn
 
-import shared
-from gui_events import (EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED, EVT_CHILD_CLOSED,
-                        EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel, EVT_REMOVE_DEVICE, fake_device_disconnect)
-from panels.node_convo_frame import NodeConvoFrame
+from gui import shared
+from gui.gui_events import (EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED, EVT_CHILD_CLOSED,
+                               EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel, EVT_REMOVE_DEVICE, fake_device_disconnect)
+from gui.panels.node_convo_frame import NodeConvoFrame
 
 
 class NodesPanel(wx.Panel):

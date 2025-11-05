@@ -2,11 +2,11 @@ import wx
 from datetime import datetime
 from pubsub import pub
 
-import shared
-from mesh_managers import DeviceManager
-from gui_events import (set_status_bar, EVT_REFRESH_PANEL,
-                        update_connection_status, EVT_UPDATE_CONNECTION_STATUS, announce_new_device,
-                        EVT_FAKE_DEVICE_DISCONNECT, EVT_DISCONNECT_DEVICE, remove_device)
+from gui import shared
+from common.mesh_managers import DeviceManager
+from gui.gui_events import (set_status_bar, EVT_REFRESH_PANEL,
+                               update_connection_status, EVT_UPDATE_CONNECTION_STATUS, announce_new_device,
+                               EVT_FAKE_DEVICE_DISCONNECT, EVT_DISCONNECT_DEVICE, remove_device)
 
 
 class DevicesPanel(wx.Panel):

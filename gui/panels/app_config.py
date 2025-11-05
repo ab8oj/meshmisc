@@ -4,8 +4,8 @@ from dotenv import dotenv_values, set_key
 import pathlib
 import shutil
 
-import shared
-from gui_events import set_status_bar
+from gui import shared
+from gui.gui_events import set_status_bar
 
 class AppConfigPanel(wx.Panel):
     def __init__(self, parent):
@@ -38,7 +38,7 @@ class AppConfigPanel(wx.Panel):
 
     @staticmethod
     def _reload_env(property_grid):
-        # See note in mesh_gui.py about why shared.config is loaded this way
+        # See note in gui.py about why shared.config is loaded this way
         shared.config = {key: value for key, value in dotenv_values(shared.dotenv_file).items()}
         property_grid.SetPropertyValues(shared.config, autofill=True)
         property_grid.ClearModifiedStatus()

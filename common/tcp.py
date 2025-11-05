@@ -3,7 +3,7 @@
 import meshtastic.tcp_interface
 import meshtastic.util
 
-import shared
+from gui import shared
 
 
 # TODO: it would be nice to make this class-based somehow.

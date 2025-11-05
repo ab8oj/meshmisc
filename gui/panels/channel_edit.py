@@ -3,7 +3,7 @@ import os
 
 import wx
 
-import shared
+from gui import shared
 
 
 class ChannelEdit(wx.Dialog):

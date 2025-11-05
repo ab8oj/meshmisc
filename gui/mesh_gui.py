@@ -6,14 +6,14 @@ import dotenv
 import wx
 from pubsub import pub
 
-import shared
+from gui import shared
 from panels.app_config import AppConfigPanel
 from panels.device_config import DevConfigPanel
 from panels.devices import DevicesPanel
 from panels.nodes import NodesPanel
 from panels.channel_messages import ChannelMessagesPanel
 from panels.direct_messages import DirectMessagesPanel
-from gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANNOUNCE_NEW_DEVICE, add_device, node_updated, \
+from gui.gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANNOUNCE_NEW_DEVICE, add_device, node_updated, \
     refresh_panel, EVT_REFRESH_SPECIFIC_PANEL, EVT_FAKE_DEVICE_DISCONNECT, remove_device, fake_device_disconnect, \
     EVT_DISCONNECT_DEVICE, disconnect_device, EVT_REMOVE_DEVICE
 
@@ -295,7 +295,7 @@ def main():
     plain dicts retain insertion order, so this will maintain environment file order.
     """
     shared.dotenv_file = dotenv.find_dotenv()
-    shared.config = {key: value for key, value in dotenv.dotenv_values(".env").items()}
+    shared.config = {key: value for key, value in dotenv.dotenv_values(shared.dotenv_file).items()}
 
     # Load saved message logs into the message buffers
     _load_channel_message_log()

@@ -3,10 +3,10 @@ import wx
 from datetime import datetime
 from ObjectListView3 import ObjectListView, ColumnDefn
 
-import shared
-from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_CHILD_CLOSED, refresh_panel, \
+from gui import shared
+from gui.gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_CHILD_CLOSED, refresh_panel, \
     refresh_specific_panel, EVT_REMOVE_DEVICE
-from panels.node_convo_frame import NodeConvoFrame
+from gui.panels.node_convo_frame import NodeConvoFrame
 
 
 class DirectMessagesPanel(wx.Panel):

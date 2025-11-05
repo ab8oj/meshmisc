@@ -1,10 +1,10 @@
 import wx
 import wx.propgrid as wxpg
 
-import shared
-from gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect, EVT_REMOVE_DEVICE, \
-    disconnect_device, refresh_specific_panel
-from panels.channel_edit import ChannelEdit
+from gui import shared
+from gui.gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect, EVT_REMOVE_DEVICE, \
+    refresh_specific_panel
+from gui.panels.channel_edit import ChannelEdit
 
 
 class DevConfigPanel(wx.Panel):

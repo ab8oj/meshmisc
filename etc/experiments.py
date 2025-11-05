@@ -4,7 +4,7 @@ import time
 # TODO: Support multiple mesh devices
 # TODO: Move from print() to returning text or whatever to caller
 
-import ble
+from common import ble
 
 from pubsub import pub
 import logging

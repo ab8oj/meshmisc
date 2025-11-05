@@ -4,8 +4,8 @@ from datetime import datetime
 import wx
 from ObjectListView3 import ObjectListView, ColumnDefn
 
-import shared
-from gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_REMOVE_DEVICE
+from gui import shared
+from gui.gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_REMOVE_DEVICE
 
 
 class ChannelMessagesPanel(wx.Panel):

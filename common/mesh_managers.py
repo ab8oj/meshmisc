@@ -2,9 +2,9 @@ import logging
 from pubsub import pub
 
 import meshtastic.mesh_interface
-import serial_port
-import tcp
-import ble
+from common import serial_port
+from common import tcp
+from common import ble
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)  # Set our own logging level separately from the root

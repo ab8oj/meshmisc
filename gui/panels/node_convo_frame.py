@@ -4,8 +4,8 @@ import wx
 from ObjectListView3 import ObjectListView, ColumnDefn
 from datetime import datetime
 
-import shared
-from gui_events import child_closed, EVT_REFRESH_PANEL, refresh_panel, refresh_specific_panel
+from gui import shared
+from gui.gui_events import child_closed, EVT_REFRESH_PANEL, refresh_panel, refresh_specific_panel
 
 
 class NodeConvoFrame(wx.Frame):

@@ -9,8 +9,8 @@ from enum import Enum, unique
 import survey
 from dotenv import load_dotenv
 
-from mesh_managers import DeviceManager, InterfaceError, Unimplemented
-from email_interface import send_email
+from common.mesh_managers import DeviceManager, InterfaceError, Unimplemented
+from common.email_interface import send_email
 
 # Since we don't get constants or #DEFINEs in Python, we make due with enumerations
 @unique
