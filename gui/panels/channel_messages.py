@@ -9,7 +9,7 @@ from gui import shared
 from gui.gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_REMOVE_DEVICE
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)  # Set our own level separately
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 
 class ChannelMessagesPanel(wx.Panel):
     def __init__(self, parent):

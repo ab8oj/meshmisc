@@ -10,7 +10,7 @@ from gui.gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_
 from gui.panels.node_convo_frame import NodeConvoFrame
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)  # Set our own level separately
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 
 
 class DirectMessagesPanel(wx.Panel):
