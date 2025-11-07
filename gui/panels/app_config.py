@@ -3,9 +3,13 @@ import wx.propgrid as wxpg
 from dotenv import dotenv_values, set_key
 import pathlib
 import shutil
+import logging
 
 from gui import shared
 from gui.gui_events import set_status_bar
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 
 class AppConfigPanel(wx.Panel):
     def __init__(self, parent):
@@ -38,6 +42,7 @@ class AppConfigPanel(wx.Panel):
 
     @staticmethod
     def _reload_env(property_grid):
+        log.debug("Reloading environment")
         # See note in gui.py about why shared.config is loaded this way
         shared.config = {key: value for key, value in dotenv_values(shared.dotenv_file).items()}
         property_grid.SetPropertyValues(shared.config, autofill=True)
@@ -46,6 +51,7 @@ class AppConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onReloadButton(self, event):
+        log.debug("Reload button event")
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
@@ -54,8 +60,10 @@ class AppConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onSaveButton(self, event):
+        log.debug("Save button event")
         # TODO: Add error checking, especially for set_key
         # Save a backup copy of config file
+        log.debug("Backing up environment file")
         backup_env_name = f"{shared.dotenv_file}.bak"
         pathlib.Path(backup_env_name).unlink(missing_ok=True)
         shutil.copy(pathlib.Path(shared.dotenv_file), pathlib.Path(backup_env_name))
@@ -68,9 +76,11 @@ class AppConfigPanel(wx.Panel):
             if self.pg.IsPropertyModified(prop):
                 prop_name = prop.GetName()
                 prop_value = prop.GetValue()
+                log.info(f"Saving key {prop_name} value {prop_value}")
                 set_key(shared.dotenv_file, prop_name, prop_value)
                 changed_keys.append(prop_name)
             iterator.Next()
+        log.info(f"Saved {len(changed_keys)} changed key(s)")
 
         if changed_keys:
             key_string = ", ".join(changed_keys)

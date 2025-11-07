@@ -1,3 +1,4 @@
+import logging
 import wx
 from datetime import datetime
 from pubsub import pub
@@ -7,6 +8,9 @@ from common.mesh_managers import DeviceManager
 from gui.gui_events import (set_status_bar, EVT_REFRESH_PANEL,
                                update_connection_status, EVT_UPDATE_CONNECTION_STATUS, announce_new_device,
                                EVT_FAKE_DEVICE_DISCONNECT, EVT_DISCONNECT_DEVICE, remove_device)
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 
 
 class DevicesPanel(wx.Panel):
@@ -109,6 +113,7 @@ class DevicesPanel(wx.Panel):
     # === Helpers and utilities
 
     def _show_device_info(self, device_index):
+        log.debug(f"Show device info for device index {device_index}")
         # TODO: Update this info once every minute or so using a timer event
         # Show device info for the device at position <index> in the device list
         # This device must already have an interface object
@@ -153,6 +158,7 @@ class DevicesPanel(wx.Panel):
         self.channel_7.SetLabel(f"7: {channel_list[7].settings.name}")
 
     def _clear_device_info(self):
+        log.debug(f"Clear device info")
         # Since this is a sizer, it's not as simple as getting its children
         children = self.device_details_grid.GetChildren()
         for child in children:
@@ -163,6 +169,7 @@ class DevicesPanel(wx.Panel):
                 widget.Clear()
 
     def _update_connection_status(self, short_name, status):
+        log.debug(f"Updte connection status to {status} for {short_name}")
         index = self.device_list.FindItem(-1, short_name)
         if index == -1:
             message = (f"WARNING: Device with name {short_name} was not found in the node list, "
@@ -172,6 +179,7 @@ class DevicesPanel(wx.Panel):
 
         self.device_list.SetItem(index, 1, status)
         if self.device_list.IsSelected(index) and status == "Connected":
+            log.debug("Device is selected and connected")
             self._show_device_info(index)
             self.disconnect_button.Enable()
             self.connect_button.Disable()
@@ -182,6 +190,7 @@ class DevicesPanel(wx.Panel):
         return
 
     def _update_device_name(self, index, name):
+        log.debug(f"Update device name to {name} for index {index}")
         self.device_list.SetItem(index, 0, name)
         for col in range(self.device_list.GetColumnCount()):
             self.device_list.SetColumnWidth(col, wx.LIST_AUTOSIZE)
@@ -190,6 +199,7 @@ class DevicesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def refresh_panel(self, event):
+        log.debug(f"Refresh panel")
         # Refresh device info of selected device, in case that was changed
         selected_index = self.device_list.GetFirstSelected()
         if selected_index != -1:
@@ -197,6 +207,7 @@ class DevicesPanel(wx.Panel):
         self.Layout()
 
     def update_connection_status(self, event):
+        log.debug(f"Update connection status event for {event.name}")
         # Handle the event version of updating the connection status
         if event.name:
             short_name = event.name
@@ -206,15 +217,17 @@ class DevicesPanel(wx.Panel):
         self._update_connection_status(short_name, status)
 
     def fake_device_disconnect(self, event):
+        log.debug(f"Fake device disconnect event for {event.name}")
         # Fake a device disconnection for cases where the pub/sub topic doesn't come through
         event.status = "Disconnected"
-        self.update_connection_status(event)
+        self.update_connection_status(event)  # Pass the event off to the event handler as if it was real
 
         index = self.device_list.FindItem(-1, event.name)
         if index != -1 and self.device_list.IsSelected(index):
             self._clear_device_info()
 
     def disconnect_device(self, event):
+        log.debug(f"Disconect device event for {event.name}")
         event.status = "Disconnected"
         self.update_connection_status(event)
 
@@ -230,9 +243,11 @@ class DevicesPanel(wx.Panel):
 
         shared.connected_interfaces[event.name].close()
         shared.connected_interfaces.pop(event.name, None)
+        log.info(f"Disconnected device {event.name}")
 
     # noinspection PyUnusedLocal
     def onDiscoverButton(self, event):
+        log.debug("Discover button event")
         # TODO: preserve connection status for connected devices or don't allow rediscover if any are connected
         device_types = []
         if self.discover_ble.IsChecked():
@@ -271,6 +286,7 @@ class DevicesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onConnectButton(self, event):
+        log.debug(f"Connect button event")
         # TODO: Deal with messages to stdout from mesh manager
         # TODO: Disallow reconnection to already-connected device (and handle failed disconnect somehow)
         selected_item = self.device_list.GetFirstSelected()
@@ -289,6 +305,7 @@ class DevicesPanel(wx.Panel):
             return
 
         try:
+            log.debug(f"Calling device manager to connect {dev_type} device at {address}")
             interface = self.device_manager.connect_to_specific_device(dev_type, address)
         except Exception as e:
             wx.RichMessageDialog(self, f"Error connecting to device: {str(e)}",
@@ -304,11 +321,13 @@ class DevicesPanel(wx.Panel):
         shared.connected_interfaces[name] = interface
         self._update_device_name(selected_item, name)
         self._update_connection_status(name, "Connected")
+        log.info(f"Connected device {name}")
 
         return
 
     # noinspection PyUnusedLocal
     def onDisconnectButton(self, event):
+        log.debug(f"Disconnect button event")
         selected_item = self.device_list.GetFirstSelected()
         if selected_item == -1:
             wx.RichMessageDialog(self, "A device must be selected", style=wx.OK | wx.ICON_ERROR).ShowModal()
@@ -341,11 +360,13 @@ class DevicesPanel(wx.Panel):
         # Remove the old interface object but don't close the associated windows. If a reconnect happens, the
         # key (name) will still be the same, so all the windows will still match up with the new object
         shared.connected_interfaces.pop(name, None)
+        log.info(f"Disconnected device {name}")
 
         return
 
     # noinspection PyUnusedLocal
     def onDeviceSelected(self, event):
+        log.debug(f"Device selected event")
         selected_index = event.GetIndex()
         selected_short_name = self.device_list.GetItemText(selected_index, 0)
         selected_status = self.device_list.GetItemText(selected_index, 1)
@@ -362,6 +383,7 @@ class DevicesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onDeviceDeselected(self, event):
+        log.debug(f"Device deselected event")
         self.connect_button.Disable()
         self.disconnect_button.Disable()
         self._clear_device_info()
@@ -374,6 +396,7 @@ class DevicesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onConnectionUp(self, interface):
         short_name = interface.getShortName()
+        log.debug(f"Mesh device {short_name} connection up event")
         shared.connected_interfaces[short_name] = interface
         wx.PostEvent(self.GetTopLevelParent(), set_status_bar(text=f"Connection established to {short_name}"))
         wx.PostEvent(self.GetTopLevelParent(), announce_new_device(name=short_name, interface=interface))
@@ -385,6 +408,7 @@ class DevicesPanel(wx.Panel):
         # longer has a shortname, assume a deliberate close() happened, and also assume these cleanup tasks
         # were done at that time.
         short_name = interface.getShortName()
+        log.debug(f"Mesh device {short_name} connection down event")
         if not short_name:
             return
 

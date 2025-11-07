@@ -340,7 +340,7 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s: [%(name)s] %(module)s.%(funcName)s %(message)s',
                     filename=shared.config["APP_LOG_NAME"], filemode='a')  # Configure root logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)  # Set our own level separately
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 logging.getLogger("bleak").setLevel(logging.INFO)  # Turn off BLE debug info
 # Sadly, meshtastic logging runs from the root logger, so there's likely no way to set that separately
 
