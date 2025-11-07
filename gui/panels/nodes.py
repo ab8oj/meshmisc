@@ -1,3 +1,4 @@
+import logging
 import wx
 from datetime import datetime
 
@@ -7,6 +8,9 @@ from gui import shared
 from gui.gui_events import (EVT_REFRESH_PANEL, EVT_ADD_DEVICE, EVT_NODE_UPDATED, EVT_CHILD_CLOSED,
                                EVT_PROCESS_RECEIVED_MESSAGE, refresh_panel, EVT_REMOVE_DEVICE, fake_device_disconnect)
 from gui.panels.node_convo_frame import NodeConvoFrame
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 
 
 class NodesPanel(wx.Panel):
@@ -93,6 +97,7 @@ class NodesPanel(wx.Panel):
 
     def _show_node_info(self, device_index):
         # TODO: Update this info once every minute or so using a timer event
+        log.debug(f"Showing node info for device at index {device_index}")
         nodeid = self.node_list.GetItemText(device_index, 0)
 
         node = shared.connected_interfaces[self.selected_device].nodes.get(nodeid, None)
@@ -130,6 +135,7 @@ class NodesPanel(wx.Panel):
         self.SendSizeEvent()  # No, I don't know why I need this here but not in the device panel
 
     def _clear_node_info(self):
+        log.debug(f"Clearing node info")
         # Since this is a sizer, it's not as simple as getting its children
         children = self.node_details_grid.GetChildren()
         for child in children:
@@ -140,6 +146,7 @@ class NodesPanel(wx.Panel):
                 widget.Clear()
 
     def _populate_node_list(self):
+        log.debug(f"Populating node list")
         # If we don't have a selected device, we clearly don't need to see anything in the list
         if not self.selected_device:
             return
@@ -162,22 +169,26 @@ class NodesPanel(wx.Panel):
     # === wxPython events
 
     def onDevicePickerChoice(self, evt):
+        log.debug("Device picker choice event")
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
         self._populate_node_list()
         self.reset_node_db_button.Enable()
 
     def onNodeSelected(self, evt):
+        log.debug("Node selected event")
         self.selected_node = evt.GetIndex()
         self._show_node_info(self.selected_node)
         self.convo_button.Enable()
 
     # noinspection PyUnusedLocal
     def onNodeDeselected(self, evt):
+        log.debug("Node deselected event")
         self._clear_node_info()
         self.convo_button.Disable()
 
     # noinspection PyUnusedLocal
     def onConvoButton(self, evt):
+        log.debug("Conversation view button event")
         selected_node = self.node_list.GetFirstSelected()
         node_id = self.node_list.GetItemText(selected_node, 0)
         node_name = self.node_list.GetItemText(selected_node, 1)
@@ -188,6 +199,7 @@ class NodesPanel(wx.Panel):
         if node_name not in shared.node_conversations[self.selected_device]:
             shared.node_conversations[self.selected_device][node_name] = []
 
+        log.debug(f"Opening conversation view for {node_name} nodeid {node_id}")
         node_convo_frame = NodeConvoFrame(self, self.GetTopLevelParent(),
                                           shared.connected_interfaces[self.selected_device], node_name, node_id)
         self.active_subpanels.append(node_convo_frame)
@@ -195,9 +207,11 @@ class NodesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onResetNodeDBButton(self, event):
+        log.debug("Reset node DB button event")
         confirm = wx.RichMessageDialog(self, f"Reset node database on device {self.selected_device}?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
         if confirm == wx.ID_OK:
+            log.info(f"Resetting node database on device {self.selected_device}")
             shared.connected_interfaces[self.selected_device].getNode("^local").resetNodeDb()
             self.node_data = []
             self.node_list.SetObjects(self.node_data)
@@ -211,6 +225,7 @@ class NodesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
+        log.debug("Refresh panel event")
         self.node_list.SetObjects(self.node_data)
         self.Layout()
         for child in self.active_subpanels:
@@ -218,6 +233,7 @@ class NodesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def add_device_event(self, evt):
+        log.debug(f"Add device event for {evt.name}")
         device_name = evt.name
         interface = evt.interface
         node_dict = interface.nodes
@@ -231,6 +247,7 @@ class NodesPanel(wx.Panel):
             self.reset_node_db_button.Enable()
 
     def remove_device_event(self, evt):
+        log.debug(f"Remove device event for {evt.name}")
         device_name = evt.name
 
         index = self.msg_device_picker.FindString(device_name)
@@ -246,6 +263,7 @@ class NodesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def receive_node_event(self, event):
+        log.debug(f"Receive node event for {event.device}")
         device_name = event.device
         node_id = event.nodeid  # Could be None
         node_num = event.nodenum  # Could be None
@@ -263,8 +281,8 @@ class NodesPanel(wx.Panel):
             shared.node_database[device_name][node_id] = node
         else:
             # TODO: Change to logging
-            print("Could not add node to shared database, no nodeID")
-            print(f"Device name: {device_name}, node number: {node_num}, "
+            log.error("Could not add node to shared database, no nodeID")
+            log.error(f"Device name: {device_name}, node number: {node_num}, "
                   f"short_name: {short_name}, long_name: {long_name}")
 
         # Rather than fiddle around trying to see if the node data already exists in the list, just reload it
@@ -274,9 +292,12 @@ class NodesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def receive_message_event(self, event):
+        log.debug("Receive message event")
         # direct_messages panel will handle updating the shared message buffer, just tell children to refresh
         for child in self.active_subpanels:
             wx.PostEvent(child, refresh_panel())
 
+    # noinspection PyUnusedLocal
     def child_closed_event(self, event):
+        log.debug("Child conversation view closed event")
         pass  # Nothing in particular to do

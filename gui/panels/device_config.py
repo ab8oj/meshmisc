@@ -1,3 +1,4 @@
+import logging
 import wx
 import wx.propgrid as wxpg
 
@@ -5,6 +6,9 @@ from gui import shared
 from gui.gui_events import set_status_bar, EVT_ADD_DEVICE, EVT_REFRESH_PANEL, fake_device_disconnect, EVT_REMOVE_DEVICE, \
     refresh_specific_panel
 from gui.panels.channel_edit import ChannelEdit
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 
 
 class DevConfigPanel(wx.Panel):
@@ -96,6 +100,7 @@ class DevConfigPanel(wx.Panel):
         self.Bind(EVT_REMOVE_DEVICE, self.remove_device_event)
 
     def _reload_user_grid(self):
+        log.debug(f"Reloading user grid")
         if not self.selected_device or not self.this_node:
             return  # Just in case
 
@@ -113,6 +118,7 @@ class DevConfigPanel(wx.Panel):
         return
 
     def _load_channel_list(self):
+        log.debug(f"Loading channel list")
         if not self.selected_device or not self.this_node:
             return
 
@@ -123,6 +129,7 @@ class DevConfigPanel(wx.Panel):
         return
 
     def _reload_lc_grid(self):
+        log.debug("Reloading localConfig grid")
         if not self.selected_device or not self.this_node:
             return  # Just in case
 
@@ -133,6 +140,7 @@ class DevConfigPanel(wx.Panel):
         return
 
     def _reload_mc_grid(self):
+        log.debug("Reloading moduleConfig grid")
         if not self.selected_device or not self.this_node:
             return  # Just in case
 
@@ -218,6 +226,7 @@ class DevConfigPanel(wx.Panel):
 
     @staticmethod
     def _get_changed_categories(editor, config):
+        log.debug("Getting changed categories")
         changed_cats = []  # Categories that have changed settings
         cat_iterator = editor.GetIterator(wx.propgrid.PG_ITERATE_CATEGORIES)
         while not cat_iterator.AtEnd():
@@ -235,9 +244,11 @@ class DevConfigPanel(wx.Panel):
                 changed_cats.append(cat.GetName())
             cat_iterator.Next()
 
+        log.debug(f"Found {len(changed_cats)} changed categories")
         return changed_cats
 
     def _save_changed_categories(self, changed_cats, editor):
+        log.debug("Saving changed categories")
         saved_cats = []
         error_cats = []
 
@@ -247,9 +258,10 @@ class DevConfigPanel(wx.Panel):
             try:
                 self.this_node.writeConfig(cat)
             except Exception:
-                # TODO: Log the exception when logging is implemented
+                log.error(f"Error saving changed category {cat}")
                 error_cats.append(cat)
             else:
+                log.info(f"Saved changed category {cat}")
                 saved_cats.append(cat)
         self.this_node.commitSettingsTransaction()
 
@@ -269,6 +281,7 @@ class DevConfigPanel(wx.Panel):
 
         # Assume the node had to reboot, even though it might not be true in all cases.
         # BLE devices in particular do not trigger the connection down topic, so kludge that.
+        log.info("Device reboot, requesting device disconnect")
         wx.PostEvent(self.GetTopLevelParent(),
                      fake_device_disconnect(name=self.selected_device,
                                             interface=shared.connected_interfaces[self.selected_device]))
@@ -279,6 +292,7 @@ class DevConfigPanel(wx.Panel):
     # wxPython events
 
     def onDevicePickerChoice(self, event):
+        log.debug("Device picker choice event")
         self.selected_device = self.device_picker.GetString(event.GetSelection())
         self.this_node = shared.connected_interfaces[self.selected_device].getNode('^local')
         self._load_channel_list()
@@ -290,39 +304,46 @@ class DevConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onChannelSelected(self, event):
+        log.debug("Channel selected event")
         self.chan_edit_button.Enable(True)
         self.chan_delete_button.Enable(True)
 
     # noinspection PyUnusedLocal
     def onChannelDeselected(self, event):
+        log.debug("Channel deselected event")
         self.chan_edit_button.Disable()
         self.chan_delete_button.Disable()
 
     # noinspection PyUnusedLocal
     def onChanEditButton(self, event):
+        log.debug("Channel edit button event")
         # TODO: Only allow editing of the first disabled channel
         channel_index = self.channel_list.GetFirstSelected()
         edit_dialog = ChannelEdit(self, self.this_node.channels[channel_index], channel_index, self.this_node,
                                   self.selected_device)
         if edit_dialog.ShowModal() == wx.ID_OK:
+            log.info("Channel configuration changed")
             wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="chm"))
             wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="devices"))
             self._load_channel_list()
 
     # noinspection PyUnusedLocal
     def onChanDeleteButton(self, event):
+        log.debug("Channel delete button event")
         channel_index = self.channel_list.GetFirstSelected()
         channel_name = self.channel_list.GetItemText(channel_index, 2)
         confirm = wx.RichMessageDialog(self, f"Are you sure you want to delete {channel_name}?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING).ShowModal()
         if confirm == wx.ID_OK:
             self.this_node.deleteChannel(channel_index)
+            log.info(f"Deleted channel {channel_name} at index {channel_index}")
             wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="chm"))
             wx.PostEvent(self.GetTopLevelParent(), refresh_specific_panel(panel_name="devices"))
             self._load_channel_list()
 
     # noinspection PyUnusedLocal
     def onUserReloadButton(self, event):
+        log.debug("User reload button event")
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the user configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
@@ -331,14 +352,17 @@ class DevConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onUserSaveButton(self, event):
+        log.debug("User save button event")
         self.this_node.setOwner(self.user_config_editor.GetPropertyValueAsString("long_name"),
                                 self.user_config_editor.GetPropertyValueAsString("short_name"),
                                 self.user_config_editor.GetPropertyValue("is_licensed"),
                                 self.user_config_editor.GetPropertyValue("is_unmessageable"))
+        log.info(f"Saved user configuration for {self.selected_device}")
         self.user_config_editor.ClearModifiedStatus()
 
         wx.RichMessageDialog(self, f"Saved user configuration\nGo to Devices panel to reconnect",
                              style=wx.OK | wx.ICON_INFORMATION).ShowModal()
+        log.info("Device reboot, request disconnect from devices panel")
         wx.PostEvent(self.GetTopLevelParent(),
                      fake_device_disconnect(name=self.selected_device,
                                             interface=shared.connected_interfaces[self.selected_device]))
@@ -346,6 +370,7 @@ class DevConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onLCReloadButton(self, event):
+        log.debug("localConfig reload button event")
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the device configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
@@ -354,6 +379,7 @@ class DevConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onLCSaveButton(self, event):
+        log.debug("localConfig save button event")
         changed_cats = self._get_changed_categories(self.lc_config_editor, self.this_node.localConfig)
         if changed_cats:
             self._save_changed_categories(changed_cats, self.lc_config_editor)
@@ -362,6 +388,7 @@ class DevConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onMCReloadButton(self, event):
+        log.debug("moduleConfig reload button event")
         confirm = wx.RichMessageDialog(self, "Are you sure you want to reload the module configuration?",
                                        style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
         if confirm.ShowModal() == wx.ID_OK:
@@ -370,6 +397,7 @@ class DevConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onMCSaveButton(self, event):
+        log.debug("moduleConfig save button event")
         changed_cats = self._get_changed_categories(self.mc_config_editor, self.this_node.moduleConfig)
         if changed_cats:
             self._save_changed_categories(changed_cats, self.mc_config_editor)
@@ -377,6 +405,7 @@ class DevConfigPanel(wx.Panel):
             wx.RichMessageDialog(self, "No changes made", style=wx.OK | wx.ICON_INFORMATION).ShowModal()
 
     def add_device_event(self, event):
+        log.debug(f"Add device event for {event.name}")
         device_name = event.name
 
         # Add the new device to the device picker and message buffer
@@ -391,6 +420,7 @@ class DevConfigPanel(wx.Panel):
             self._reload_lc_grid()
 
     def remove_device_event(self, event):
+        log.debug(f"Remove device event for {event.name}")
         device_name = event.name
 
         index = self.device_picker.FindString(device_name)
@@ -405,4 +435,5 @@ class DevConfigPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
+        log.debug("Refresh panel event")
         self.Layout()
