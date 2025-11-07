@@ -1,9 +1,13 @@
+import logging
 import base64
 import os
 
 import wx
 
 from gui import shared
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 
 
 class ChannelEdit(wx.Dialog):
@@ -79,6 +83,7 @@ class ChannelEdit(wx.Dialog):
     # === Helpers and private functions
 
     def _load_channel_info(self):
+        log.debug("Loading channel info")
         self.channel_name.SetValue(self.channel_info.settings.name)
         # noinspection PyTypeHints
         role_string_index = self.channel_role.FindString(shared.channel_roles[self.channel_info.role])
@@ -97,6 +102,7 @@ class ChannelEdit(wx.Dialog):
         return
 
     def _save_channel_info(self):
+        log.debug("Saving channel info")
         self.channel_info.settings.name = self.channel_name.GetValue()
         # Don't assume the roles in the choice list are in the same order as in shared.channel_roles
         role_string = self.channel_role.GetString(self.channel_role.GetSelection())
@@ -111,15 +117,18 @@ class ChannelEdit(wx.Dialog):
             self.channel_info.settings.module_settings.position_precision = 0
 
         self.this_node.writeChannel(self.channel_index)
+        log.info(f"Channel info saved for {self.device_name}")
 
     # === wxPython events
 
     # noinspection PyUnusedLocal
     def onKeyGenButton(self, event):
+        log.debug("Key generate button event")
         self.key.SetValue(base64.b64encode(os.urandom(32)).decode('utf-8'))
 
     # noinspection PyUnusedLocal
     def onPosEnabledCheckbox(self, event):
+        log.debug("Position enabled checkbox event")
         if self.pos_enabled.GetValue():
             self.pos_precision.Enable()
         else:
@@ -127,9 +136,11 @@ class ChannelEdit(wx.Dialog):
 
     # noinspection PyUnusedLocal
     def onSaveButton(self, event):
+        log.debug("Save button event")
         self._save_channel_info()
         self.EndModal(wx.ID_OK)
 
     # noinspection PyUnusedLocal
     def onCancelButton(self, event):
+        log.debug("Cancel button event")
         self.EndModal(wx.ID_CANCEL)

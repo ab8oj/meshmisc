@@ -1,4 +1,5 @@
 # "Conversation view" of direct messages between a local local_node_name and a remote node
+import logging
 import csv
 import wx
 from ObjectListView3 import ObjectListView, ColumnDefn
@@ -6,6 +7,9 @@ from datetime import datetime
 
 from gui import shared
 from gui.gui_events import child_closed, EVT_REFRESH_PANEL, refresh_panel, refresh_specific_panel
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)  # Set our own level separately
 
 
 class NodeConvoFrame(wx.Frame):
@@ -54,6 +58,7 @@ class NodeConvoFrame(wx.Frame):
 
     # noinspection PyUnusedLocal
     def onSendButton(self, evt):
+        log.debug("Send button event")
         # TODO: Disable the Send button until and unless there is text to send
         text_to_send = self.send_text.GetValue()
         if text_to_send is None or text_to_send.strip() == "":
@@ -61,6 +66,7 @@ class NodeConvoFrame(wx.Frame):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
+        log.debug(f"Sending text to node {self.remote_node_id}")
         self.interface.sendText(text_to_send, destinationId=self.remote_node_id)
         self.send_text.Clear()
 
@@ -85,18 +91,21 @@ class NodeConvoFrame(wx.Frame):
 
     @staticmethod
     def _log_message(message_dict):
+        log.debug("Log message")
         with (open(shared.config.get("DIRECT_MESSAGE_LOG", "direct-messages.csv"), "a") as lf):
             csv.DictWriter(lf, fieldnames=["device", "remote", "timestamp", "from", "to", "message"]
                            ).writerow(message_dict)
 
     # noinspection PyUnusedLocal
     def closeEvent(self, event):
+        log.debug("Frame close event")
         # Tell parent this window is closing
         wx.PostEvent(self.GetParent(), child_closed(child=self))
         self.Destroy()
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
+        log.debug("Refresh panel event")
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
                                  preserveSelection=True)
         item_count = self.messages.GetItemCount()
