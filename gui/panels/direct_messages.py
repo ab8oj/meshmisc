@@ -1,3 +1,4 @@
+import logging
 import csv
 import wx
 from datetime import datetime
@@ -7,6 +8,9 @@ from gui import shared
 from gui.gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_CHILD_CLOSED, refresh_panel, \
     refresh_specific_panel, EVT_REMOVE_DEVICE
 from gui.panels.node_convo_frame import NodeConvoFrame
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)  # Set our own level separately
 
 
 class DirectMessagesPanel(wx.Panel):
@@ -64,6 +68,7 @@ class DirectMessagesPanel(wx.Panel):
         self.selected_device = None  # Device last selected , so we don't have to call control's method every time
 
     def _find_nodeid_from_shortname(self, shortname):
+        log.debug(f"Finding nodeid from shortname {shortname}")
         # Brute force for now: shuffle through the interface's node list looking for the shortname
         for node, node_info in shared.connected_interfaces[self.selected_device].nodes.items():
             if node_info.get("user", {}).get("shortName", None) == shortname:
@@ -73,6 +78,7 @@ class DirectMessagesPanel(wx.Panel):
     # === wxPython events
 
     def onDevicePickerChoice(self, evt):
+        log.debug("Device picker choice event")
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
         self.messages.SetObjects(shared.direct_messages[self.selected_device])
         if self.messages.GetItemCount() > 0:
@@ -80,6 +86,7 @@ class DirectMessagesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onQuickMsgButton(self, evt):
+        log.debug("Quick message button event")
         selected_item = self.messages.GetFirstSelected()
         if self.messages[selected_item]["from"] != self.selected_device:  # Remote node name could be in either column
             selected_sender = self.messages[selected_item]["from"]
@@ -98,6 +105,7 @@ class DirectMessagesPanel(wx.Panel):
         if text_to_send.strip() == "":  # No text entered or cancel was selected
             return
 
+        log.debug(f"Sending message to {sender_node_id}")
         shared.connected_interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id)
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -117,6 +125,7 @@ class DirectMessagesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onConvoButton(self, evt):
+        log.debug("Conversation view button event")
         selected_item = self.messages.GetFirstSelected()
         if self.messages[selected_item]["from"] != self.selected_device:  # Remote node name could be in either column
             selected_sender = self.messages[selected_item]["from"]
@@ -127,6 +136,8 @@ class DirectMessagesPanel(wx.Panel):
             wx.RichMessageDialog(self, f"Sender {selected_sender} not found in device node list, cannot send message",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
+
+        log.debug(f"Opening conversation view for {selected_sender} nodeid {sender_node_id}")
         node_convo_frame = NodeConvoFrame(self, self.GetTopLevelParent(),
                                           shared.connected_interfaces[self.selected_device], selected_sender, sender_node_id)
         self.active_subpanels.append(node_convo_frame)
@@ -134,16 +145,19 @@ class DirectMessagesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onMessageSelected(self, evt):
+        log.debug("Message selected event")
         self.quick_msg_button.Enable()
         self.convo_button.Enable()
 
     # noinspection PyUnusedLocal
     def onMessageDeselected(self, evt):
+        log.debug("Message deselected event")
         self.quick_msg_button.Disable()
         self.convo_button.Disable()
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
+        log.debug("Refresh panel event")
         self.messages.SetObjects(shared.direct_messages[self.selected_device], preserveSelection=True)
         item_count = self.messages.GetItemCount()
         if item_count > 0:
@@ -152,6 +166,7 @@ class DirectMessagesPanel(wx.Panel):
             wx.PostEvent(child, refresh_panel())
 
     def add_device_event(self, evt):
+        log.debug(f"Add device event for {evt.name}")
         device_name = evt.name
 
         # Add the new device to the message buffer and device picker
@@ -166,6 +181,7 @@ class DirectMessagesPanel(wx.Panel):
                 self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
 
     def remove_device_event(self, evt):
+        log.debug(f"Remove device event for {evt.name}")
         device_name = evt.name
 
         index = self.msg_device_picker.FindString(device_name)
@@ -176,6 +192,7 @@ class DirectMessagesPanel(wx.Panel):
             self.messages.SetObjects([])
 
     def receive_message_event(self, event):
+        log.debug(f"Receive message event for {event.device}")
         device = event.device
         sender = event.sender
         timestamp = event.timestamp
@@ -207,12 +224,14 @@ class DirectMessagesPanel(wx.Panel):
         self._log_message(log_dict)
 
     def child_closed_event(self, event):
+        log.debug("Child conversation window closed event")
         child = event.child
         if child in self.active_subpanels:
             self.active_subpanels.remove(child)
 
     @staticmethod
     def _log_message(message_dict):
+        log.debug("Logging message")
         with (open(shared.config.get("DIRECT_MESSAGE_LOG", "direct-messages.csv"), "a") as lf):
             csv.DictWriter(lf, fieldnames=["device", "remote", "timestamp", "from", "to", "message"],
                            quoting=csv.QUOTE_ALL).writerow(message_dict)

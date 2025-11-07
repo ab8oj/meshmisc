@@ -1,3 +1,4 @@
+import logging
 import csv
 from datetime import datetime
 
@@ -7,6 +8,8 @@ from ObjectListView3 import ObjectListView, ColumnDefn
 from gui import shared
 from gui.gui_events import EVT_REFRESH_PANEL, EVT_PROCESS_RECEIVED_MESSAGE, EVT_ADD_DEVICE, EVT_REMOVE_DEVICE
 
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)  # Set our own level separately
 
 class ChannelMessagesPanel(wx.Panel):
     def __init__(self, parent):
@@ -69,6 +72,7 @@ class ChannelMessagesPanel(wx.Panel):
     # === wxPython events
 
     def onDevicePickerChoice(self, evt):
+        log.debug("Device picker choice event")
         # TODO: How to handle channels with still-unread messages
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
 
@@ -82,8 +86,10 @@ class ChannelMessagesPanel(wx.Panel):
         for chan in channel_list:
             if chan.role != 0:
                 self.msg_channel_list.Append((chan.index, chan.settings.name))
+                log.debug(f"Adding channel {chan.settings.name} at index {chan.index}")
 
     def onChannelSelected(self, evt):
+        log.debug("Channel selected event")
         # TODO: un-highlight the channel when selected
         # It seems like this could fire before the first device selection event
         selected_index = evt.GetIndex()
@@ -99,10 +105,12 @@ class ChannelMessagesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def onChannelDeselected(self, evt):
+        log.debug("Channel deselected event")
         self.messages.SetObjects([])
 
     # noinspection PyUnusedLocal
     def onSendButton(self, evt):
+        log.debug("Send button event")
         # TODO: Disable the Send button until and unless device and channel are selected and there is text to send
         text_to_send = self.send_text.GetValue()
         if text_to_send is None or text_to_send.strip() == "":
@@ -125,6 +133,7 @@ class ChannelMessagesPanel(wx.Panel):
 
         # TODO: Trap integer conversion errors here in case there's a bad log file entry
         channel_index = int(self.selected_channel)
+        log.debug(f"Sending message on channel {channel_index}")
         shared.connected_interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
         shared.channel_messages[self.selected_device][self.selected_channel].append(message_dict)
         self.messages.SetObjects(shared.channel_messages[self.selected_device][self.selected_channel])
@@ -137,6 +146,7 @@ class ChannelMessagesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):
+        log.debug("Refresh panel event")
         # Repopulate channel list, in case channels were edited
         if self.selected_device:
             channel_list = shared.connected_interfaces[self.selected_device].localNode.channels
@@ -149,6 +159,7 @@ class ChannelMessagesPanel(wx.Panel):
         self.Layout()
 
     def add_device_event(self, evt):
+        log.debug(f"Add device event for {evt.name}")
         device_name = evt.name
         interface = evt.interface
         channel_list = interface.localNode.channels
@@ -176,6 +187,7 @@ class ChannelMessagesPanel(wx.Panel):
                 self.msg_channel_list.Append((chan.index, chan.settings.name))
 
     def remove_device_event(self, evt):
+        log.debug(f"Remove device event for {evt.name}")
         device_name = evt.name
 
         index = self.msg_device_picker.FindString(device_name)
@@ -189,6 +201,7 @@ class ChannelMessagesPanel(wx.Panel):
 
     # Channel (non-direct) message received (event sent here from pub/sub handler in main app)
     def receive_message_event(self, event):
+        log.debug(f"Receive message event on device {event.device}")
         # TODO: Highlight the channel that got the message
         device = event.device
         channel = event.channel
@@ -212,6 +225,7 @@ class ChannelMessagesPanel(wx.Panel):
 
     @staticmethod
     def _log_message(message_dict):
+        log.debug("Logging message")
         with (open(shared.config.get("CHANNEL_MESSAGE_LOG", "channel-messages.csv"), "a") as lf):
             csv.DictWriter(lf, fieldnames=["device", "channel", "timestamp", "sender", "message"],
                            quoting=csv.QUOTE_ALL).writerow(message_dict)
