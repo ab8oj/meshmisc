@@ -94,7 +94,7 @@ class DeviceManager:
             log.info(f"Connecting to ble device {address}")
             interface = ble.make_connection_and_return(address)  # Let exceptions fly past us to the caller
         elif interface_type == "tcp":
-            log.debug("Connecting to tcp device {address}")
+            log.debug(f"Connecting to tcp device {address}")
             interface = tcp.make_connection_and_return(address)
         elif interface_type == "serial":
             log.debug(f"Connecting to serial device {address}")
