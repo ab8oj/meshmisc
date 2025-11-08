@@ -67,7 +67,14 @@ class NodeConvoFrame(wx.Frame):
             return
 
         log.debug(f"Sending text to node {self.remote_node_id}")
-        self.interface.sendText(text_to_send, destinationId=self.remote_node_id)
+        try:
+            self.interface.sendText(text_to_send, destinationId=self.remote_node_id)
+        except Exception as e:
+            log.error(f"Error sending message: {e}")
+            wx.RichMessageDialog(self, "Error sending message, see log for details",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
         self.send_text.Clear()
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

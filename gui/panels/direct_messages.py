@@ -106,7 +106,13 @@ class DirectMessagesPanel(wx.Panel):
             return
 
         log.debug(f"Sending message to {sender_node_id}")
-        shared.connected_interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id)
+        try:
+            shared.connected_interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id)
+        except Exception as e:
+            log.error(f"Error sending message: {e}")
+            wx.RichMessageDialog(self, "Error sending message, see log for details",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message_dict = {"timestamp": now, "from": self.selected_device, "to": selected_sender,

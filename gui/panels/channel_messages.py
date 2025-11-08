@@ -131,10 +131,24 @@ class ChannelMessagesPanel(wx.Panel):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message_dict = {"timestamp": now, "sender": self.selected_device, "message": text_to_send}
 
-        # TODO: Trap integer conversion errors here in case there's a bad log file entry
-        channel_index = int(self.selected_channel)
+        # Guard against an invalid channel number
+        try:
+            channel_index = int(self.selected_channel)
+        except ValueError:
+            log.error(f"Invalid channel index: {self.selected_channel}")
+            wx.RichMessageDialog(self, f"Invalid channel index {self.selected_channel}",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
         log.debug(f"Sending message on channel {channel_index}")
-        shared.connected_interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
+        try:
+            shared.connected_interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
+        except Exception as e:
+            log.error(f"Error sending message on channel {channel_index}: {e}")
+            wx.RichMessageDialog(self, "Error sending message, see log for details",
+                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+            return
+
         shared.channel_messages[self.selected_device][self.selected_channel].append(message_dict)
         self.messages.SetObjects(shared.channel_messages[self.selected_device][self.selected_channel])
         self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
