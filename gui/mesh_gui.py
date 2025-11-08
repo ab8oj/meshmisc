@@ -337,7 +337,7 @@ shared.config = {key: value for key, value in dotenv.dotenv_values(shared.dotenv
 
 # Set up logging globally (outside of main()) so everything can access it
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s: [%(name)s] %(module)s.%(funcName)s %(message)s',
+                    format='%(asctime)s %(levelname)s: [%(name)s] [%(module)s.%(funcName)s] %(message)s',
                     filename=shared.config["APP_LOG_NAME"], filemode='a')  # Configure root logger
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)  # Set our own level separately
