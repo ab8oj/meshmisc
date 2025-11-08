@@ -344,5 +344,7 @@ log = logging.getLogger(__name__)
 logging.getLogger("bleak").setLevel(logging.INFO)  # Turn off BLE debug info
 # Sadly, meshtastic logging runs from the root logger, so there's likely no way to set that separately
 
+# TODO: Given that we need the config and logging code outside of any function, it seems silly to
+#   also have main(). Move that code here and insert an overly-long explanation.
 if __name__ == "__main__":
     main()
