@@ -7,7 +7,7 @@ from common import tcp
 from common import ble
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)  # Set our own logging level separately from the root
+# log.setLevel(logging.DEBUG)  # Set our own logging level separately from the root
 
 class InterfaceError(Exception):
     pass
@@ -15,6 +15,8 @@ class InterfaceError(Exception):
 class Unimplemented(Exception):
     pass
 
+
+# noinspection PyMethodMayBeStatic
 class DeviceManager:
     # Manage a set of Meshtastic devices across several interface types.
     supported_interface_types = ["ble", "tcp", "serial"]
@@ -25,11 +27,12 @@ class DeviceManager:
         pub.subscribe(self.onConnectionUp, "meshtastic.connection.established")
         pub.subscribe(self.onConnectionDown, "meshtastic.connection.lost")
 
-    # TODO: do we need these here? Do we need to reflect state change to app layer?
+    # noinspection PyUnusedLocal
     def onConnectionUp(self, interface, topic=pub.AUTO_TOPIC):
         log.info(f"Connection established on interface {interface.getShortName()}")
         return
 
+    # noinspection PyUnusedLocal
     def onConnectionDown(self, interface, topic=pub.AUTO_TOPIC):
         log.info(f"Connection lost on interface {interface.getShortName()}")
         return
