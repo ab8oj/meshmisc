@@ -225,9 +225,10 @@ class DirectMessagesPanel(wx.Panel):
 
     def child_closed_event(self, event):
         log.debug("Child conversation window closed event")
-        child = event.child
-        if child in self.active_subpanels:
-            self.active_subpanels.remove(child)
+        try:
+            self.active_subpanels.remove(event.child)
+        except ValueError:
+            log.error("Child conversation window is not in active child list")
 
     @staticmethod
     def _log_message(message_dict):

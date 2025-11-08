@@ -299,5 +299,8 @@ class NodesPanel(wx.Panel):
 
     # noinspection PyUnusedLocal
     def child_closed_event(self, event):
-        log.debug("Child conversation view closed event")
-        pass  # Nothing in particular to do
+        log.debug("Child conversation window closed event")
+        try:
+            self.active_subpanels.remove(event.child)
+        except ValueError:
+            log.error("Child conversation window is not in active child list")
