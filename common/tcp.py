@@ -17,7 +17,7 @@ def make_connection_and_return(address):
         interface = meshtastic.tcp_interface.TCPInterface(address)
         log.info(f"TCP interface to {interface.getShortName()} initialized")
     except Exception as e:
-        log.info(f"\nERROR: Could not connect via TCP: {e}")
+        log.info(f"ERROR: Could not connect via TCP: {e}")
 
     return interface
 
@@ -32,5 +32,5 @@ def scan_all_devices() -> list:
     for dev in shared.config["TCP_DEVICES"].split(","):
         # TODO: basic IP address / hostname sanity checking
         dev_list.append(("tcp", dev, dev))  # Return the device address or DNS hostname for both address and shortname
-    log.info(f"Found {len(dev_list)} TCP devices")
+    log.info(f"Found {len(dev_list)} TCP device(s)")
     return dev_list
