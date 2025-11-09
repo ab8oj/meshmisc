@@ -28,8 +28,8 @@ class DirectMessagesPanel(wx.Panel):
         sizer.Add(self.msg_device_picker, 0, wx.BOTTOM | wx.TOP, 2)
         sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
 
-        messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
-        sizer.Add(messages_label, 0, flag=wx.LEFT)
+        self.messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
+        sizer.Add(self.messages_label, 0, flag=wx.LEFT)
 
         message_button_box = wx.BoxSizer(wx.HORIZONTAL)
         self.quick_msg_button = wx.Button(self, wx.ID_ANY, "Send direct message")
@@ -155,11 +155,24 @@ class DirectMessagesPanel(wx.Panel):
         self.quick_msg_button.Enable()
         self.convo_button.Enable()
 
+        selected_item = self.messages.GetFirstSelected()
+        from_node = self.messages.GetItemText(selected_item, 1)
+        to_node = self.messages.GetItemText(selected_item, 2)
+        if from_node == self.selected_device:
+            remote_shortname = to_node
+            label_text = "Message to"
+        else:
+            remote_shortname = from_node
+            label_text = "Message from"
+        remote_longname = shared.find_longname_from_shortname(self.selected_device, remote_shortname)
+        self.messages_label.SetLabel(f"{label_text} {remote_longname} ({remote_shortname})")
+
     # noinspection PyUnusedLocal
     def onMessageDeselected(self, evt):
         log.debug("Message deselected event")
         self.quick_msg_button.Disable()
         self.convo_button.Disable()
+        self.messages_label.SetLabel("Messages")
 
     # noinspection PyUnusedLocal
     def refresh_panel_event(self, event):

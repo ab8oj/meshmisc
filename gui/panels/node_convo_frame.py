@@ -19,11 +19,15 @@ class NodeConvoFrame(wx.Frame):
         self.interface = interface
         self.remote_node_name = remote_node_name
         self.remote_node_id = remote_node_id
+        self.remote_long_name = interface.nodes[remote_node_id].get("user", {}).get("longName", None)
         self.local_node_name = interface.getShortName()
+        self.local_long_name = interface.getLongName()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(wx.StaticText(self, -1, f"Device: {self.local_node_name}"), 0, wx.BOTTOM | wx.LEFT, 3)
-        sizer.Add(wx.StaticText(self, -1, f"Remote: {self.remote_node_name}"), 0, wx.BOTTOM | wx.LEFT, 5)
+        sizer.Add(wx.StaticText(self, -1, f"Device: {self.local_long_name} ({self.local_node_name})"),
+                  0, wx.BOTTOM | wx.LEFT, 3)
+        sizer.Add(wx.StaticText(self, -1, f"Remote: {self.remote_long_name} ({self.remote_node_name})"),
+                  0, wx.BOTTOM | wx.LEFT, 5)
         messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
         sizer.Add(messages_label, 0, wx.LEFT | wx.BOTTOM | wx.LEFT, 5)
 

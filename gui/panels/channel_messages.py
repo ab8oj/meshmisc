@@ -37,7 +37,7 @@ class ChannelMessagesPanel(wx.Panel):
         sizer.Add(channel_list_label, 0, flag=wx.LEFT)
         sizer.Add(self.msg_channel_list, 1, wx.TOP | wx.BOTTOM, 5)
 
-        messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
+        self.messages_label = wx.StaticText(self, wx.ID_ANY, "Messages")
         self.messages = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.messages.SetColumns([
             ColumnDefn("Timestamp", "left", 150, "timestamp", isEditable=False),
@@ -45,7 +45,9 @@ class ChannelMessagesPanel(wx.Panel):
             ColumnDefn("", "left", -1, "message", isEditable=False),
         ])
         self.messages.SetEmptyListMsg("No messages")
-        sizer.Add(messages_label, 0, flag=wx.LEFT)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onMessageSelected, self.messages)
+        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onMessageDeselected, self.messages)
+        sizer.Add(self.messages_label, 0, flag=wx.LEFT)
         sizer.Add(self.messages, 4, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         send_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -107,6 +109,17 @@ class ChannelMessagesPanel(wx.Panel):
     def onChannelDeselected(self, evt):
         log.debug("Channel deselected event")
         self.messages.SetObjects([])
+
+    # noinspection PyUnusedLocal
+    def onMessageSelected(self, evt):
+        log.debug("Message selected event")
+        shortname = self.messages.GetItemText(self.messages.GetFirstSelected(), 1)
+        longname = shared.find_longname_from_shortname(self.selected_device, shortname)
+        self.messages_label.SetLabel(f"Message from {longname} ({shortname})")
+
+    # noinspection PyUnusedLocal
+    def onMessageDeselected(self, evt):
+        self.messages_label.SetLabel("Messages")
 
     # noinspection PyUnusedLocal
     def onSendButton(self, evt):

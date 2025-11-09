@@ -1,4 +1,11 @@
-# Data shared between different parts of the GUI app
+# Data and functions shared between different parts of the GUI app
+
+import logging
+
+log = logging.getLogger(__name__)
+# log.setLevel(logging.DEBUG)  # Set our own level separately
+
+# === Shared data ===
 
 # Environment configuration
 dotenv_file = ""
@@ -78,3 +85,18 @@ node_database = {}
 
 # Channel roles: channel_roles[integer_role_value] is the string value of the role
 channel_roles = ["DISABLED", "PRIMARY", "SECONDARY"]
+
+# === Shared functions ===
+
+def find_longname_from_shortname(device, shortname):
+    log.debug(f"Finding a node's longname from shortname {shortname}")
+    # Brute force for now: shuffle through the interface's node list looking for the shortname
+    for node_id, node_info in connected_interfaces[device].nodes.items():
+        if node_info.get("user", {}).get("shortName", None) == shortname:
+            longname = node_info.get("user", {}).get("longName", None)
+            if longname:
+                return longname
+            else:
+                return f"Meshtastic {shortname}"  # Node was found but has no longname
+
+    return f"Meshtastic {shortname}"  # Node was not found
