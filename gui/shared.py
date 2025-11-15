@@ -45,7 +45,7 @@ channel_messages = {}  # Non-direct messages (sent to ^all) grouped by device an
 """
 channel_messages[devicename][channel] is a list of messages: 
 {devicename:
-    {channel number:[           
+    {channel name:[           
         {"Timestamp": timestamp,
          "Sender": sender,
          "Message": message}

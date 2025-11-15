@@ -78,11 +78,12 @@ class ChannelMessagesPanel(wx.Panel):
         # TODO: How to handle channels with still-unread messages
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
 
-        # Repopulate the channel list with the new device's channels
-        # DeleteAllItems doesn't seem to generate a deselect event, force deselect so messages get cleared
+        # If a channel is selected, deselect it so the message list for that channel gets cleared
         selected_channel = self.msg_channel_list.GetFirstSelected()
         if selected_channel != -1:
             self.msg_channel_list.Select(selected_channel, 0)
+
+        # Repopulate the channel list with the new device's channels
         self.msg_channel_list.DeleteAllItems()
         channel_list = shared.connected_interfaces[self.selected_device].localNode.channels
         for chan in channel_list:
@@ -98,7 +99,7 @@ class ChannelMessagesPanel(wx.Panel):
         if selected_index == -1:
             self.selected_channel = None
         else:
-            self.selected_channel = str(self.msg_channel_list.GetItemText(selected_index, 0))
+            self.selected_channel = str(self.msg_channel_list.GetItemText(selected_index, 1))
         if self.selected_channel not in shared.channel_messages[self.selected_device]:
             shared.channel_messages[self.selected_device][self.selected_channel] = []
         self.messages.SetObjects(shared.channel_messages[self.selected_device][self.selected_channel])
@@ -144,13 +145,12 @@ class ChannelMessagesPanel(wx.Panel):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message_dict = {"timestamp": now, "sender": self.selected_device, "message": text_to_send}
 
-        # Guard against an invalid channel number
-        try:
-            channel_index = int(self.selected_channel)
-        except ValueError:
-            log.error(f"Invalid channel index: {self.selected_channel}")
-            wx.RichMessageDialog(self, f"Invalid channel index {self.selected_channel}",
-                                 style=wx.OK | wx.ICON_ERROR).ShowModal()
+        channel_index = self.msg_channel_list.GetFirstSelected()
+        if channel_index == -1:
+            log.error("Channel list does not have a selected item, but self.selected_channel is not None")
+            wx.RichMessageDialog(self, "Client logic error: no selected channel but "
+                                       "self.selected_channel is not None"
+                                       "\nMessage will not be sent", style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
         log.debug(f"Sending message on channel {channel_index}")
@@ -167,7 +167,7 @@ class ChannelMessagesPanel(wx.Panel):
         self.messages.EnsureVisible(self.messages.GetItemCount() - 1)
         self.send_text.Clear()
 
-        log_dict = {"device": self.selected_device, "channel": channel_index,
+        log_dict = {"device": self.selected_device, "channel": self.selected_channel,
                     "timestamp": now, "sender": self.selected_device, "message": text_to_send}
         self._log_message(log_dict)
 
@@ -205,8 +205,8 @@ class ChannelMessagesPanel(wx.Panel):
         if device_name not in shared.channel_messages:
             shared.channel_messages[device_name] = {}
         for chan in channel_list:
-            if chan.index not in shared.channel_messages[device_name]:
-                shared.channel_messages[device_name][chan.index] = []
+            if chan.settings.name not in shared.channel_messages[device_name]:
+                shared.channel_messages[device_name][chan.settings.name] = []
 
         # Populate the channel list
         for chan in channel_list:
@@ -231,10 +231,14 @@ class ChannelMessagesPanel(wx.Panel):
         log.debug(f"Receive message event on device {event.device}")
         # TODO: Highlight the channel that got the message
         device = event.device
-        channel = event.channel
+        channel_number = event.channel
         sender = event.sender
         timestamp = event.timestamp
         text = event.message
+
+        # Translate channel index from message packet to channel name
+        channel = self.msg_channel_list.GetItemText(int(channel_number), 1)
+
         if device not in shared.channel_messages:
             shared.channel_messages[device] = {}
         if channel not in shared.channel_messages[device]:
