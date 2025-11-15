@@ -262,7 +262,8 @@ def _load_channel_message_log():
     try:
         lf = open(shared.config.get("CHANNEL_MESSAGE_LOG", "channel-messages.csv"), "r")
     except FileNotFoundError:
-        return  # Silently ignore no log file found yet
+        log.info("Channel message log file not found, it will be created by incoming messages")
+        return
 
     with lf:
         reader = csv.DictReader(lf, fieldnames=["device", "channel", "timestamp", "sender", "message"])
@@ -279,12 +280,15 @@ def _load_channel_message_log():
             shared.channel_messages[device][channel].append({"timestamp": timestamp, "sender": sender,
                                                          "message":message})
 
+    lf.close()
+
 def _load_direct_message_log():
     log.debug("Loading direct message log")
     try:
         lf = open(shared.config.get("DIRECT_MESSAGE_LOG", "direct-messages.csv"), "r")
     except FileNotFoundError:
-        return  # Silently ignore no log file found yet
+        log.info("Direct message log file not found, it will be created by incoming messages")
+        return
 
     with lf:
         reader = csv.DictReader(lf, fieldnames=["device", "remote", "timestamp", "from", "to", "message"])
@@ -305,6 +309,8 @@ def _load_direct_message_log():
                                                          "to": to_shortname, "message":message})
             shared.node_conversations[device][remote].append({"timestamp": timestamp, "from": from_shortname,
                                                    "to": to_shortname, "message": message})
+
+    lf.close()
 
 def main():
     # Load saved message logs into the message buffers
