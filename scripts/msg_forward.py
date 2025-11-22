@@ -23,7 +23,6 @@ class MessageType(Enum):  # Define constants for message type, since they will b
 
 # Incoming message
 def onIncomingMessage(packet, interface):
-    # TODO: Move packet parsing to a separate function, this is getting a bit long
     msg_log_name = os.getenv("MSG_LOG_NAME")  # Where the messages themselves get logged (flat file)
 
     log = logging.getLogger(__name__)
@@ -67,7 +66,6 @@ def onIncomingMessage(packet, interface):
         print("forwarding to email")
         log.info("forwarding to email")
         try:
-            # TODO: Probably better to get these values in email_interface
             smtp_server = os.getenv("SMTP_SERVER")
             smtp_sender = os.getenv("SMTP_SENDER")
             smtp_password = os.getenv("SMTP_PASSWORD")
