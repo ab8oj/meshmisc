@@ -78,6 +78,7 @@ class AppConfigPanel(wx.Panel):
                 prop_value = prop.GetValue()
                 log.info(f"Saving key {prop_name} value {prop_value}")
                 set_key(shared.dotenv_file, prop_name, prop_value)
+                shared.config[prop_name] = prop_value
                 changed_keys.append(prop_name)
             iterator.Next()
         log.info(f"Saved {len(changed_keys)} changed key(s)")
