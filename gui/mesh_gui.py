@@ -21,8 +21,11 @@ from gui.gui_events import EVT_SET_STATUS_BAR, process_received_message, EVT_ANN
 
 class MainFrame(wx.Frame):
     def __init__(self, parent):
-        # noinspection PyTypeChecker
-        wx.Frame.__init__(self, parent, wx.ID_ANY, "AB8OJ Meshtastic Client", size=(800, 600))  # TODO: size tweaking
+        wx.Frame.__init__(self, parent, wx.ID_ANY, "AB8OJ Meshtastic Client")
+        this_display = wx.Display(self)  # Get the display this frame is displayed upon
+        this_display_height = max(this_display.GetGeometry().GetHeight(), 800)
+        this_display_width = max(this_display.GetGeometry().GetWidth(), 600)
+        self.SetSize(wx.Size(int(this_display_width/2), int(this_display_height/2)))
         self.CreateStatusBar()
         self.Bind(EVT_SET_STATUS_BAR, self.setStatusBar)
 
