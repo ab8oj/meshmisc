@@ -61,7 +61,6 @@ class AppConfigPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onSaveButton(self, event):
         log.debug("Save button event")
-        # TODO: Add error checking, especially for set_key
         # Save a backup copy of config file
         log.debug("Backing up environment file")
         backup_env_name = f"{shared.dotenv_file}.bak"

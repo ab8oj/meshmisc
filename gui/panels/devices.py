@@ -287,7 +287,6 @@ class DevicesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onConnectButton(self, event):
         log.debug(f"Connect button event")
-        # TODO: Deal with messages to stdout from mesh manager
         # TODO: Disallow reconnection to already-connected device (and handle failed disconnect somehow)
         selected_item = self.device_list.GetFirstSelected()
         if selected_item == -1:
