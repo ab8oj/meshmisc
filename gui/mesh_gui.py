@@ -303,31 +303,18 @@ def _load_direct_message_log():
 
     lf.close()
 
-def main():
-    # Load saved message logs into the message buffers
-    log.debug("Loading saved message logs")
-    _load_channel_message_log()
-    _load_direct_message_log()
-
-    # Fire up the app
-    log.info("Starting GUI")
-    client_app = wx.App(False)  # Do not redirect stdin.stdout to a window yet
-    MainFrame(None)
-    client_app.MainLoop()
-
-    # TODO: disconnect from any connected devices
-    log.info("Exiting GUI")
-    client_app.Destroy()
-    # TODO: other cleanup here
-
 # === Main program ===
 
 """
-Load environment configuration (outside of main()) so logging can use it
+Why no main()? 
+- Environment configuration needs to be loaded outside of main() so it can be used by the logger and other things
+- Logging needs to be set up outside of main() so other things can use it
+- That leaves little for a main() function to do, so just do everything here
 
-By default, dotenv would load values into an OrderedDict, but SetPropertyValues() cannot handle those.
-Instead, load environment config file into a plain dict instead. Starting with Python 3.7,
-plain dicts retain insertion order, so this will maintain environment file order.
+Why is shared.config populated through iteration?
+- By default, dotenv would load values into an OrderedDict, but SetPropertyValues() cannot handle those.
+- Instead, load environment config file into a plain dict. 
+- Starting with Python 3.7, plain dicts retain insertion order, so this will maintain environment file order.
 """
 shared.dotenv_file = dotenv.find_dotenv()
 shared.config = {key: value for key, value in dotenv.dotenv_values(shared.dotenv_file).items()}
@@ -341,7 +328,16 @@ log = logging.getLogger(__name__)
 logging.getLogger("bleak").setLevel(logging.INFO)  # Turn off BLE debug info
 # Sadly, meshtastic logging runs from the root logger, so there's likely no way to set that separately
 
-# TODO: Given that we need the config and logging code outside of any function, it seems silly to
-#   also have main(). Move that code here and insert an overly-long explanation.
-if __name__ == "__main__":
-    main()
+# Load saved message logs into the message buffers
+log.debug("Loading saved message logs")
+_load_channel_message_log()
+_load_direct_message_log()
+
+# Fire up the app
+log.info("Starting GUI")
+client_app = wx.App(False)  # Do not redirect stdin.stdout to a window yet
+MainFrame(None)
+client_app.MainLoop()
+
+log.info("Exiting GUI")
+client_app.Destroy()
