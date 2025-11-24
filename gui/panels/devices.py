@@ -49,8 +49,8 @@ class DevicesPanel(wx.Panel):
         self.device_list.InsertColumn(3, 'Address', width=wx.LIST_AUTOSIZE)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onDeviceSelected, self.device_list)
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onDeviceDeselected, self.device_list)
-        device_list_box.Add(self.device_list, 1, flag=wx.EXPAND)
-        device_box.Add(device_list_box, 1, flag=wx.EXPAND)
+        device_list_box.Add(self.device_list, 1)
+        device_box.Add(device_list_box, 1)
 
         self.ble_text = wx.TextCtrl(self, wx.ID_ANY,
                                     "NOTE: Some device types may take several seconds to discover and/or connect",
