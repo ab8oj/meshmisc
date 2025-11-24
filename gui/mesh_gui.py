@@ -34,8 +34,6 @@ class MainFrame(wx.Frame):
         filemenu = wx.Menu()
         filemenu_exit = filemenu.Append(wx.ID_EXIT, "Exit", " Exit")
         self.Bind(wx.EVT_MENU, self.onExit, filemenu_exit)
-        filemenu_fruit = filemenu.Append(wx.ID_ANY, "Banana")  # TODO: Obviously, replace with something more useful
-        self.Bind(wx.EVT_MENU, self.onFruitSelected, filemenu_fruit)
 
         aboutmenu = wx.Menu()
         aboutmenu.Append(wx.ID_ABOUT, "About", " Aboout this program")
@@ -91,21 +89,11 @@ class MainFrame(wx.Frame):
 
     # === Menu events
     # noinspection PyUnusedLocal
-    def onFruitSelected(self, event):
-        # NOTE: standard MessageDialog always displays a folder icon on Mac OS X, so use RichMessageDialog instead
-        log.debug("Someone fell for the old banana trick")
-        dlg = wx.RichMessageDialog(self, "Banana for scale", "",
-                                   wx.OK | wx.ICON_INFORMATION)
-        dlg.ShowModal()
-        dlg.Destroy()
-
-    # noinspection PyUnusedLocal
     def onExit(self, event):
         # TODO: Exit confirmation if configured to do so
         self.Close(True)
 
     # === Toolbar events
-
     # noinspection PyUnusedLocal
     def onFontIncrease(self, event):
         log.debug("Font increase")
