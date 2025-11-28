@@ -41,6 +41,9 @@ class NodeConvoFrame(wx.Frame):
         self.messages.SetEmptyListMsg("No messages")
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
                                  preserveSelection=True)
+        item_count = self.messages.GetItemCount()
+        if item_count > 0:
+            self.messages.EnsureVisible(item_count - 1)
         sizer.Add(self.messages, 4, wx.EXPAND)
 
         send_sizer = wx.BoxSizer(wx.HORIZONTAL)
