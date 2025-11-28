@@ -105,9 +105,16 @@ class DirectMessagesPanel(wx.Panel):
         if text_to_send.strip() == "":  # No text entered or cancel was selected
             return
 
+        if ("WANT_ACK_DIRECT" in shared.config.keys()
+                and shared.config["WANT_ACK_DIRECT"].lower() in ("true", "yes")):
+            want_ack = True
+        else:
+            want_ack = False
+
         log.debug(f"Sending message to {sender_node_id}")
         try:
-            shared.connected_interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id)
+            shared.connected_interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id,
+                                                                       wantAck=want_ack)
         except Exception as e:
             log.error(f"Error sending message: {e}")
             wx.RichMessageDialog(self, "Error sending message, see log for details",

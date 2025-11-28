@@ -186,7 +186,6 @@ class MainFrame(wx.Frame):
     """
 
     def onIncomingMessage(self, packet, interface):
-        # TODO: Implement wantAck (see https://deepwiki.com/meshtastic/Meshtastic-Apple/2.2-mesh-packets)
         log.debug("Incoming message")
         my_shortname = interface.getShortName()
         my_node_id = interface.getMyNodeInfo().get("user", {}).get("id", "unknown")

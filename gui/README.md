@@ -30,6 +30,8 @@ APP_LOG_NAME=mesh_gui.log
 CHANNEL_MESSAGE_LOG=channel-messages.csv  
 DIRECT_MESSAGE_LOG=direct-messages.csv  
 CONFIRM_ON_EXIT=True or Yes to confirm, any other value is ignored  
+WANT_ACK_BROADCAST=True or Yes for next-hop-only delivery acknowledgement of broadcast messages  
+WANT_ACK_DIRECT=True or Yes for delivery acknowledgement of direct messages  
 TCP_DEVICES='\<IP or dns hostname>,...'  # single quotes are required here
 
 ## Important note about handling Meshtastic pub/sub events

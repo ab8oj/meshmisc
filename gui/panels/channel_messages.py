@@ -153,9 +153,16 @@ class ChannelMessagesPanel(wx.Panel):
                                        "\nMessage will not be sent", style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
+        if ("WANT_ACK_BROADCAST" in shared.config.keys()
+                and shared.config["WANT_ACK_BROADCAST"].lower() in ("true", "yes")):
+            want_ack = True
+        else:
+            want_ack = False
+
         log.debug(f"Sending message on channel {channel_index}")
         try:
-            shared.connected_interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index)
+            shared.connected_interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index,
+                                                                       wantAck=want_ack)
         except Exception as e:
             log.error(f"Error sending message on channel {channel_index}: {e}")
             wx.RichMessageDialog(self, "Error sending message, see log for details",

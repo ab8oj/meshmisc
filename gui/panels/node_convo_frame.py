@@ -70,9 +70,15 @@ class NodeConvoFrame(wx.Frame):
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
+        if ("WANT_ACK_DIRECT" in shared.config.keys()
+                and shared.config["WANT_ACK_DIRECT"].lower() in ("true", "yes")):
+            want_ack = True
+        else:
+            want_ack = False
+
         log.debug(f"Sending text to node {self.remote_node_id}")
         try:
-            self.interface.sendText(text_to_send, destinationId=self.remote_node_id)
+            self.interface.sendText(text_to_send, destinationId=self.remote_node_id, wantAck=want_ack)
         except Exception as e:
             log.error(f"Error sending message: {e}")
             wx.RichMessageDialog(self, "Error sending message, see log for details",
