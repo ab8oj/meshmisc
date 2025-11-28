@@ -66,7 +66,6 @@ class NodeConvoFrame(wx.Frame):
     # noinspection PyUnusedLocal
     def onSendButton(self, evt):
         log.debug("Send button event")
-        # TODO: Disable the Send button until and unless there is text to send
         text_to_send = self.send_text.GetValue()
         if text_to_send is None or text_to_send.strip() == "":
             wx.RichMessageDialog(self, "No text to send",
