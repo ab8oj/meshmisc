@@ -30,8 +30,6 @@ class AppConfigPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.onSaveButton, save_button)
         outer_box.Add(button_box, 0, wx.CENTER | wx.TOP | wx.BOTTOM, 5)
 
-        # TODO: Email validator for email properties (see bottom of dev doc for snippets)
-
         self.pg = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         self.pg.SetPropertyValues(shared.config, autofill=True)
         outer_box.Add(self.pg, 1, wx.EXPAND)
