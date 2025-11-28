@@ -90,7 +90,11 @@ class MainFrame(wx.Frame):
     # === Menu events
     # noinspection PyUnusedLocal
     def onExit(self, event):
-        # TODO: Exit confirmation if configured to do so
+        if "CONFIRM_ON_EXIT" in shared.config.keys() and shared.config["CONFIRM_ON_EXIT"].lower() in ("true", "yes"):
+            result = wx.RichMessageDialog(self, "Exit client?", style=wx.YES_NO | wx.ICON_QUESTION).ShowModal()
+            if result == wx.ID_NO:
+                return
+
         self.Close(True)
 
     # === Toolbar events
