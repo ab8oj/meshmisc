@@ -75,7 +75,6 @@ class ChannelMessagesPanel(wx.Panel):
 
     def onDevicePickerChoice(self, evt):
         log.debug("Device picker choice event")
-        # TODO: How to handle channels with still-unread messages
         self.selected_device = self.msg_device_picker.GetString(evt.GetSelection())
 
         # If a channel is selected, deselect it so the message list for that channel gets cleared
@@ -93,7 +92,6 @@ class ChannelMessagesPanel(wx.Panel):
 
     def onChannelSelected(self, evt):
         log.debug("Channel selected event")
-        # TODO: un-highlight the channel when selected
         # It seems like this could fire before the first device selection event
         selected_index = evt.GetIndex()
         if selected_index == -1:
@@ -125,7 +123,6 @@ class ChannelMessagesPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onSendButton(self, evt):
         log.debug("Send button event")
-        # TODO: Disable the Send button until and unless device and channel are selected and there is text to send
         text_to_send = self.send_text.GetValue()
         if text_to_send is None or text_to_send.strip() == "":
             wx.RichMessageDialog(self, "No text to send",
@@ -236,7 +233,6 @@ class ChannelMessagesPanel(wx.Panel):
     # Channel (non-direct) message received (event sent here from pub/sub handler in main app)
     def receive_message_event(self, event):
         log.debug(f"Receive message event on device {event.device}")
-        # TODO: Highlight the channel that got the message
         device = event.device
         channel_number = event.channel
         sender = event.sender
