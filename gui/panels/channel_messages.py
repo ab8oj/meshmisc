@@ -156,7 +156,7 @@ class ChannelMessagesPanel(wx.Panel):
         else:
             want_ack = False
 
-        log.debug(f"Sending message on channel {channel_index}")
+        log.debug(f"Sending message on channel {channel_index}, wantAck={want_ack}")
         try:
             shared.connected_interfaces[self.selected_device].sendText(text_to_send, channelIndex=channel_index,
                                                                        wantAck=want_ack)

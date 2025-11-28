@@ -111,7 +111,7 @@ class DirectMessagesPanel(wx.Panel):
         else:
             want_ack = False
 
-        log.debug(f"Sending message to {sender_node_id}")
+        log.debug(f"Sending message to {sender_node_id}, wantAck={want_ack}")
         try:
             shared.connected_interfaces[self.selected_device].sendText(text_to_send, destinationId=sender_node_id,
                                                                        wantAck=want_ack)

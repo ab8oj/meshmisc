@@ -78,7 +78,7 @@ class NodeConvoFrame(wx.Frame):
         else:
             want_ack = False
 
-        log.debug(f"Sending text to node {self.remote_node_id}")
+        log.debug(f"Sending text to node {self.remote_node_id}, wantAck={want_ack}")
         try:
             self.interface.sendText(text_to_send, destinationId=self.remote_node_id, wantAck=want_ack)
         except Exception as e:
