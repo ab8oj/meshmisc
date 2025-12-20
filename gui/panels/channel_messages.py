@@ -18,7 +18,7 @@ class ChannelMessagesPanel(wx.Panel):
 
         dev_picker_label = wx.StaticText(self, wx.ID_ANY, "Devices")
         self.msg_device_picker = wx.Choice(self, wx.ID_ANY, choices=[], name="Device",
-                                           size=wx.Size(150, 20),
+                                           size=wx.Size(150, -1),
                                            style=wx.CB_SORT | wx.ALIGN_TOP)
         self.msg_device_picker.SetSelection(wx.NOT_FOUND)
         self.Bind(wx.EVT_CHOICE, self.onDevicePickerChoice, self.msg_device_picker)
