@@ -23,7 +23,8 @@ disconnecting from a BLE device. At present, the only option is to force-quit th
 * pip install objectlistview3
 * pip install urllib3 (on MacOS: urllib3==1.26.6)  
 * pip install python-dotenv
-4. Run the app: `cd gui; python ./mesh_gui.py`
+4. Run the app from the meshmisc directory: `sh ./run-gui.py`
+* Windows: see contents of run-gui.py and do those commands in a Windows way (TODO: create batch file)
 
 # .env contents
 APP_LOG_NAME=mesh_gui.log  
