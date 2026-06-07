@@ -1,0 +1,4 @@
+cd /Users/ethierbach/PycharmProjects/meshmisc/gui/
+. ../.venv/bin/activate
+export PYTHONPATH=/Users/ethierbach/PycharmProjects/meshmisc/
+python mesh_gui.py
