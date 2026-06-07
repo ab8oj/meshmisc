@@ -34,8 +34,8 @@ class NodesPanel(wx.Panel):
         self.node_list.SetMaxSize(wx.Size(-1, 300))
         self.node_list.SetColumns([
             ColumnDefn("Node ID", "left", 90, "nodeid", isEditable=False),
-            ColumnDefn("Name", "left", 47, "name", isEditable=False),
-            ColumnDefn("Hops", "left", 37, "hops", isEditable=False),
+            ColumnDefn("Name", "left", 53, "name", isEditable=False),
+            ColumnDefn("Hops", "left", 47, "hops", isEditable=False),
             ColumnDefn("Last Heard", "left", 150, "lastheard", isEditable=False),
             ColumnDefn("Long Name", "left", -1, "longname", isEditable=False, isSpaceFilling=True),
         ])
