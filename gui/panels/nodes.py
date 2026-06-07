@@ -28,6 +28,8 @@ class NodesPanel(wx.Panel):
         sizer.Add(self.msg_device_picker, 0, wx.BOTTOM | wx.TOP, 2)
         sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
 
+        # Programmer note: Do not adjust column sizes based on good GUIs like MacOS. Clunky Linux
+        # windowing requires more space.
         self.node_list_label = wx.StaticText(self, wx.ID_ANY, "Nodes")
         self.node_list = ObjectListView(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         self.node_list.SetMinSize(wx.Size(-1, 300))
