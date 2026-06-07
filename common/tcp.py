@@ -1,5 +1,6 @@
 # Interface to a node connected via tcp
 import logging
+import ipaddress
 
 import meshtastic.tcp_interface
 import meshtastic.util
@@ -30,7 +31,12 @@ def scan_all_devices() -> list:
     log.info("Scanning for TCP devices")
     dev_list = []
     for dev in shared.config["TCP_DEVICES"].split(","):
-        # TODO: basic IP address / hostname sanity checking
-        dev_list.append(("tcp", dev, dev))  # Return the device address or DNS hostname for both address and shortname
+        # Make sure we have a valid IP address before returning it
+        try:
+            valid_ip = ipaddress.ip_address(dev)
+        except Exception as e:
+            log.error(f"Invalid IP address in configuration: {dev} -- {e}")
+        else:
+            dev_list.append(("tcp", valid_ip, valid_ip))  # Return the device address or DNS hostname for both address and shortname
     log.info(f"Found {len(dev_list)} TCP device(s)")
     return dev_list

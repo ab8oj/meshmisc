@@ -41,6 +41,9 @@ class NodeConvoFrame(wx.Frame):
         self.messages.SetEmptyListMsg("No messages")
         self.messages.SetObjects(shared.node_conversations[self.local_node_name][self.remote_node_name],
                                  preserveSelection=True)
+        item_count = self.messages.GetItemCount()
+        if item_count > 0:
+            self.messages.EnsureVisible(item_count - 1)
         sizer.Add(self.messages, 4, wx.EXPAND)
 
         send_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -63,16 +66,21 @@ class NodeConvoFrame(wx.Frame):
     # noinspection PyUnusedLocal
     def onSendButton(self, evt):
         log.debug("Send button event")
-        # TODO: Disable the Send button until and unless there is text to send
         text_to_send = self.send_text.GetValue()
         if text_to_send is None or text_to_send.strip() == "":
             wx.RichMessageDialog(self, "No text to send",
                                  style=wx.OK | wx.ICON_ERROR).ShowModal()
             return
 
-        log.debug(f"Sending text to node {self.remote_node_id}")
+        if ("WANT_ACK_DIRECT" in shared.config.keys()
+                and shared.config["WANT_ACK_DIRECT"].lower() in ("true", "yes")):
+            want_ack = True
+        else:
+            want_ack = False
+
+        log.debug(f"Sending text to node {self.remote_node_id}, wantAck={want_ack}")
         try:
-            self.interface.sendText(text_to_send, destinationId=self.remote_node_id)
+            self.interface.sendText(text_to_send, destinationId=self.remote_node_id, wantAck=want_ack)
         except Exception as e:
             log.error(f"Error sending message: {e}")
             wx.RichMessageDialog(self, "Error sending message, see log for details",

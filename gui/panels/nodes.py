@@ -280,7 +280,6 @@ class NodesPanel(wx.Panel):
                 shared.node_database[device_name] = {}
             shared.node_database[device_name][node_id] = node
         else:
-            # TODO: Change to logging
             log.error("Could not add node to shared database, no nodeID")
             log.error(f"Device name: {device_name}, node number: {node_num}, "
                   f"short_name: {short_name}, long_name: {long_name}")

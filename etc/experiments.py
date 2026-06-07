@@ -1,16 +1,20 @@
 # Experimenting and playing around
 import time
 
-# TODO: Support multiple mesh devices
-# TODO: Move from print() to returning text or whatever to caller
+"""
+Improvements that can be made:
 
+Support multiple mesh devices
+Move from print() to returning text or whatever to caller
+Find a better way to track connection status, like perhaps making all this a class
+
+"""
 from common import ble
 
 from pubsub import pub
 import logging
 
 # Ugh, global variables
-# TODO: Find a better way to track connection status, like perhaps making all this a class
 CONNECTED = False
 TOPIC_COUNTS = {}
 
@@ -43,7 +47,7 @@ def onReceiveText(packet, interface):
         from_longname = "unknown"
     msg_line = f"Text Message on {our_shortname} from node {from_longname} ({from_shortname}): {text_message}"
     print(msg_line)
-    with open("message.log", "a") as log:  # TODO: make a better permanent storage solution
+    with open("message.log", "a") as log:
         print(msg_line, file=log)
     return
 
@@ -106,7 +110,6 @@ def onReceiveData(packet, interface, topic=pub.AUTO_TOPIC):
 
 def onNodeUpdated(node, interface):
     # print(f"Node updated packet received on interface {interface.getShortName()}")
-    # TODO: Create an in-memory node database from the relevant parts of the node data
     # print(node)
     # print("\n")
     return
@@ -124,7 +127,6 @@ def get_node_db(interface):
     # Each node is a dict, key is node name and value is a dict of things about that node
     # Some of those things are also dicts unto themselves (e.g. "user")
     # And not all of the things exist for each node, so do the usual checks for existence
-    # TODO: Have a lot of "fun" formatting this
     for node in interface.nodes:
         print(f"Node: {node}")  # works
         for thing in interface.nodes[node].keys():

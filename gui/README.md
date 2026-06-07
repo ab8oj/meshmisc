@@ -28,14 +28,11 @@ disconnecting from a BLE device. At present, the only option is to force-quit th
 
 # .env contents
 APP_LOG_NAME=mesh_gui.log  
-MSG_LOG_NAME=messages.log  
 CHANNEL_MESSAGE_LOG=channel-messages.csv  
 DIRECT_MESSAGE_LOG=direct-messages.csv  
-SMTP_SERVER=\<smtp server address>  
-SMTP_SENDER=\<smtp server username>  
-SMTP_PASSWORD=\<smtp server password>   
-EMAIL_FROM_ADDRESS=\<email-from-address>  
-EMAIL_TO_ADDRESS=\<email-to-address>  
+CONFIRM_ON_EXIT=True or Yes to confirm, any other value is ignored  
+WANT_ACK_BROADCAST=True or Yes for next-hop-only delivery acknowledgement of broadcast messages  
+WANT_ACK_DIRECT=True or Yes for delivery acknowledgement of direct messages  
 TCP_DEVICES='\<IP or dns hostname>,...'  # single quotes are required here
 
 ## Important note about handling Meshtastic pub/sub events

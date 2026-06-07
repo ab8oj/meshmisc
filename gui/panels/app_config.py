@@ -30,8 +30,6 @@ class AppConfigPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.onSaveButton, save_button)
         outer_box.Add(button_box, 0, wx.CENTER | wx.TOP | wx.BOTTOM, 5)
 
-        # TODO: Email validator for email properties (see bottom of dev doc for snippets)
-
         self.pg = wxpg.PropertyGrid(self, style=wxpg.PG_SPLITTER_AUTO_CENTER | wxpg.PG_BOLD_MODIFIED)
         self.pg.SetPropertyValues(shared.config, autofill=True)
         outer_box.Add(self.pg, 1, wx.EXPAND)
@@ -61,7 +59,6 @@ class AppConfigPanel(wx.Panel):
     # noinspection PyUnusedLocal
     def onSaveButton(self, event):
         log.debug("Save button event")
-        # TODO: Add error checking, especially for set_key
         # Save a backup copy of config file
         log.debug("Backing up environment file")
         backup_env_name = f"{shared.dotenv_file}.bak"
@@ -78,6 +75,7 @@ class AppConfigPanel(wx.Panel):
                 prop_value = prop.GetValue()
                 log.info(f"Saving key {prop_name} value {prop_value}")
                 set_key(shared.dotenv_file, prop_name, prop_value)
+                shared.config[prop_name] = prop_value
                 changed_keys.append(prop_name)
             iterator.Next()
         log.info(f"Saved {len(changed_keys)} changed key(s)")
