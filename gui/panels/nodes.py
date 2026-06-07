@@ -33,8 +33,10 @@ class NodesPanel(wx.Panel):
         self.node_list.SetMinSize(wx.Size(-1, 300))
         self.node_list.SetMaxSize(wx.Size(-1, 300))
         self.node_list.SetColumns([
-            ColumnDefn("Node ID", "left", 100, "nodeid", isEditable=False),
-            ColumnDefn("Name", "left", 50, "name", isEditable=False),
+            ColumnDefn("Node ID", "left", 90, "nodeid", isEditable=False),
+            ColumnDefn("Name", "left", 47, "name", isEditable=False),
+            ColumnDefn("Hops", "left", 37, "hops", isEditable=False),
+            ColumnDefn("Last Heard", "left", 150, "lastheard", isEditable=False),
             ColumnDefn("Long Name", "left", -1, "longname", isEditable=False, isSpaceFilling=True),
         ])
         self.node_list.SetEmptyListMsg("No nodes")
@@ -128,9 +130,12 @@ class NodesPanel(wx.Panel):
         # Row 4
         snr = node.get("snr", "N/A")
         hops_away = node.get("hopsAway", "N/A")
-        last_heard = node.get("lastHeard", 0)
         self.hops_away_snr.SetLabel(f"Hops away: {hops_away}, SNR: {snr}")
-        self.last_heard_time.SetLabel(f"Last heard time: {datetime.fromtimestamp(int(last_heard))}")
+        last_heard = node.get("lastHeard", 0)
+        if last_heard == 0:
+            self.last_heard_time.SetLabel("Last heard time: unknown")
+        else:
+            self.last_heard_time.SetLabel(f"Last heard time: {datetime.fromtimestamp(int(last_heard))}")
 
         self.SendSizeEvent()  # No, I don't know why I need this here but not in the device panel
 
@@ -154,10 +159,23 @@ class NodesPanel(wx.Panel):
         # Populate the node list
         self.node_data = []
         for nodeid, data in shared.connected_interfaces[self.selected_device].nodes.items():
+            longname = data.get("user", {}).get("longName", "Unknown")
+            shortname = data.get("user", {}).get("shortName", "????")
+            lh_raw = data.get("lastHeard", 0)
+            if lh_raw == 0:
+                last_heard = "0 Unknown"
+            else:
+                last_heard = f"{datetime.fromtimestamp(int(lh_raw))}"
+            if shortname == self.selected_device:
+                hops = "  "
+            else:
+                hops = data.get("hopsAway", "??")
             node_data_row = {
                 "nodeid": nodeid,
-                "name": data.get("user", {}).get("shortName", "????"),
-                "longname": data.get("user", {}).get("longName", "Unknown"),
+                "name": shortname,
+                "hops": hops,
+                "lastheard": last_heard,
+                "longname": longname,
             }
             self.node_data.append(node_data_row)
         self.node_list.SetObjects(self.node_data)
