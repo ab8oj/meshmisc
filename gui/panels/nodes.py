@@ -28,7 +28,7 @@ class NodesPanel(wx.Panel):
         sizer.Add(self.msg_device_picker, 0, wx.BOTTOM | wx.TOP, 2)
         sizer.Add(wx.StaticLine(self, wx.ID_ANY), 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 5)
 
-        # Programmer note: Do not adjust column sizes based on good GUIs like MacOS. Clunky Linux
+        # Programmer note: Do not adjust column sizes based on good GUIs like macOS. Clunky Linux
         # windowing requires more space.
         self.node_list_label = wx.StaticText(self, wx.ID_ANY, "Nodes")
         self.node_list = ObjectListView(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
@@ -46,6 +46,10 @@ class NodesPanel(wx.Panel):
         self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.onNodeDeselected, self.node_list)
         sizer.Add(self.node_list_label, 0, flag=wx.LEFT)
         sizer.Add(self.node_list, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+
+        self.refresh_button = wx.Button(self, wx.ID_ANY, "Refresh node list")
+        self.Bind(wx.EVT_BUTTON, self.onRefreshButton, self.refresh_button)
+        sizer.Add(self.refresh_button, 0, flag=wx.LEFT)
 
         self.convo_button = wx.Button(self, wx.ID_ANY, "Show direct message conversation")
         self.convo_button.Disable()
@@ -205,6 +209,10 @@ class NodesPanel(wx.Panel):
         log.debug("Node deselected event")
         self._clear_node_info()
         self.convo_button.Disable()
+
+    # noinspection PyUnusedLocal
+    def onRefreshButton(self, evt):
+        self._populate_node_list()
 
     # noinspection PyUnusedLocal
     def onConvoButton(self, evt):
